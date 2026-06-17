@@ -1,4 +1,11 @@
 # FrameYard Backend
+"FrameYard is a custom frame ecommerce platform. Users can upload their photos, choose frame styles, customize sizes, preview the final result, and place orders online."
+
+# Why Am I Building This?
+
+"Most local frame shops don't provide a digital customization experience. Customers often have to imagine the final output. I want to solve that by giving users a better online experience."
+
+## Day 1
 
 ## Project Overview
 
@@ -95,16 +102,93 @@ frameyard-backend
 
 ---
 
-## Commit History
+## Day 2
 
-### Commit #1
+## Authentication Module Progress
 
-**Title**
+### Completed Features
+#### User Registration
 
-Initial backend setup with Prisma and Supabase
+* Created Register API
+* Integrated Supabase Authentication
+* User signup with email and password
+* Email verification enabled
+* User profile stored in PostgreSQL using Prisma
 
-**Completed**
+#### User Login
 
-* Backend project initialized
-* Prisma configured
-* Supabase connected
+* Created Login API
+* Integrated Supabase Sign In
+* User authentication using email and password
+* Email verification status sync
+* Session and access token generation
+
+#### Authentication Middleware
+
+* Created protected route middleware
+* Bearer token validation
+* Supabase token verification
+* User extraction from access token
+
+#### User Profile
+
+* Created Get Profile API
+* Fetch logged-in user profile using access token
+* Protected profile endpoint
+
+#### Update Profile
+
+* Created Update Profile API
+* User can update:
+
+  * Name
+  * Phone Number
+  * Address Line
+  * Postal Code
+  * City
+  * State
+  * Country
+  * Gender
+
+### Database
+
+* Prisma connected to Supabase PostgreSQL
+* User schema finalized
+* Database migrations applied successfully
+
+### APIs Completed
+
+POST /auth/register
+
+POST /auth/login
+
+GET /auth/profile
+
+PUT /auth/profile
+
+### Security Features
+
+* Email Verification
+* Access Token Authentication
+* Protected Routes
+* User Validation
+* Duplicate User Prevention
+
+### Pending Authentication Features
+
+POST /auth/forgot-password
+
+POST /auth/reset-password
+
+### Next Module
+
+Product Module
+
+* Product Schema Design
+* Product CRUD APIs
+* Product Images
+* Product Categories
+* Product Variants
+
+----------
+
