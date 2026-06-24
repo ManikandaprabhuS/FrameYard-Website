@@ -4,9 +4,9 @@ export const getAllProducts = async () => {
 
   const products =
     await prisma.product.findMany({
-       include: {
-    variants: true
-  },
+      include: {
+        variants: true
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -137,6 +137,10 @@ export const updateProduct = async (
         availableColors: data.availableColors,
         isActive: data.isActive,
       },
+      include: {
+        variants: true,
+        images: true,
+      },
     });
 
   return {
@@ -216,4 +220,15 @@ export const deleteVariant = async (
     success: true,
     message: "Variant deleted successfully",
   };
+};
+
+export const getInventoryForExport = async () => {
+  return await prisma.product.findMany({
+    include: {
+      variants: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 };

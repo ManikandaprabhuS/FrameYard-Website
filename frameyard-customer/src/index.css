@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ca8a04;
+  --color-primary-dark: #a16207;
+  --color-secondary: #0f172a;
+  
+  --color-surface: #ffffff;
+  --color-surface-variant: #f8fafc;
+  --color-surface-container: #f1f5f9;
+  
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #64748b;
+  --color-outline: #cbd5e1;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface antialiased selection:bg-primary/20 selection:text-primary-dark;
+  }
+}
