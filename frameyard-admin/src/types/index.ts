@@ -23,8 +23,8 @@ export interface ProductVariant {
   id: string;
   productId: string;
   frameSize: string;
-  hasBorder: boolean;
-  hasGlass: boolean;
+  mountType: string;
+  glassType: string;
   price: number;
   offerPrice?: number | null;
   stockQuantity: number;
@@ -62,12 +62,13 @@ export type OrderStatus =
 export interface OrderItem {
   id: string;
   orderId: string;
+  orderNumber: string;
   productId?: string | null;
   variantId?: string | null;
   productName: string;
   frameSize: string;
-  hasBorder: boolean;
-  hasGlass: boolean;
+  mountType: string;
+  glassType: string;
   quantity: number;
   price: number;
   subtotal: number;
@@ -76,6 +77,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   userId: string;
+  orderNumber: string;
   totalAmount: number;
   orderStatus: OrderStatus;
   phoneNumber: string;

@@ -50,7 +50,8 @@ export const ProductDetailsPage: React.FC = () => {
   const [variantModalOpen, setVariantModalOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<VariantForm | null>(null);
   const [varSize, setVarSize] = useState('');
-  const [varBorder, setVarBorder] = useState('');
+  const [varMountType, setVarMountType] = useState('NONE');
+const [varGlassType, setVarGlassType] = useState('NONE');
   const [varPrice, setVarPrice] = useState('');
   const [varOfferPrice, setVarOfferPrice] = useState('');
   const [varStock, setVarStock] = useState('');
@@ -110,8 +111,8 @@ export const ProductDetailsPage: React.FC = () => {
         for (const variant of variants) {
           await addVariant(product.id, {
             frameSize: variant.frameSize,
-            hasBorder: variant.hasBorder,
-            hasGlass: variant.hasGlass,
+            mountType: variant.mountType,
+            glassType: variant.glassType,
             price: variant.price,
             offerPrice: variant.offerPrice,
             stockQuantity: variant.stockQuantity,
@@ -142,7 +143,8 @@ export const ProductDetailsPage: React.FC = () => {
   const openAddVariant = () => {
     setEditingVariant(null);
     setVarSize('');
-    setVarBorder('');
+    setVarMountType('NONE');
+    setVarGlassType('NONE');
     setVarPrice('');
     setVarOfferPrice('');
     setVarStock('');
@@ -152,7 +154,8 @@ export const ProductDetailsPage: React.FC = () => {
   const openEditVariant = (variant: VariantForm) => {
     setEditingVariant(variant);
     setVarSize(variant.frameSize);
-    setVarBorder(variant.hasBorder ? 'Border' : '');
+    setVarMountType(variant.mountType);
+    setVarGlassType(variant.glassType);
     setVarPrice(variant.price.toString());
     setVarOfferPrice(variant.offerPrice?.toString() || '');
     setVarStock(variant.stockQuantity.toString());
@@ -166,8 +169,8 @@ export const ProductDetailsPage: React.FC = () => {
       id: editingVariant?.id || 'v-' + Math.random().toString(36).substr(2, 5),
       productId: editingVariant?.productId || id,
       frameSize: varSize,
-      hasBorder: Boolean(varBorder),
-      hasGlass: true,
+      mountType: varMountType,
+      glassType: varGlassType,
       price: parseFloat(varPrice),
       offerPrice: varOfferPrice ? parseFloat(varOfferPrice) : null,
       stockQuantity: parseInt(varStock),
@@ -177,8 +180,8 @@ export const ProductDetailsPage: React.FC = () => {
     if (!isNew && id) {
       const payload = {
         frameSize: newVariant.frameSize,
-        hasBorder: newVariant.hasBorder,
-        hasGlass: newVariant.hasGlass,
+        mountType: newVariant.mountType,
+        glassType: newVariant.glassType,
         price: newVariant.price,
         offerPrice: newVariant.offerPrice,
         stockQuantity: newVariant.stockQuantity,
@@ -422,7 +425,7 @@ export const ProductDetailsPage: React.FC = () => {
                 <thead className="bg-surface border-b border-outline-variant">
                   <tr className="text-secondary font-semibold text-xs uppercase tracking-wider">
                     <th className="px-6 py-3">Frame Size</th>
-                    <th className="px-6 py-3">Border</th>
+                    <th className="px-6 py-3">Mount & Glass</th>
                     <th className="px-6 py-3">Price</th>
                     <th className="px-6 py-3">Stock</th>
                     <th className="px-6 py-3 text-right">Actions</th>
@@ -440,7 +443,7 @@ export const ProductDetailsPage: React.FC = () => {
                       <tr key={v.id} className="hover:bg-surface transition-colors">
                         <td className="px-6 py-4 font-semibold text-on-surface">{v.frameSize}</td>
                         <td className="px-6 py-4 text-on-surface-variant">
-                          {v.hasBorder ? 'Border' : 'No Border'} / {v.hasGlass ? 'Glass' : 'No Glass'}
+                            {v.mountType} / {v.glassType}
                         </td>
                         <td className="px-6 py-4 font-semibold">
                           <div className="flex flex-col">
@@ -602,16 +605,33 @@ export const ProductDetailsPage: React.FC = () => {
               required
             />
           </div>
-          <div className="col-span-2">
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Matte Border (e.g. White Matte, Gold Fillet)</label>
-            <input 
-              type="text" 
-              value={varBorder} 
-              onChange={(e) => setVarBorder(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
-              placeholder="e.g. Natural Oak, White Matte"
-            />
-          </div>
+          <div>
+  <label className="block text-xs font-semibold mb-2"> MOUNT TYPE </label>
+  <select
+    value={varMountType}
+    onChange={(e) => setVarMountType(e.target.value)}
+    className="w-full border rounded-lg px-3 py-2"
+  >
+    <option value="NONE">NONE</option>
+    <option value="OPTION_1">OPTION 1</option>
+    <option value="OPTION_2">OPTION 2</option>
+  </select>
+</div>
+<div>
+  <label className="block text-xs font-semibold mb-2">
+    GLASS TYPE
+  </label>
+
+  <select
+    value={varGlassType}
+    onChange={(e) => setVarGlassType(e.target.value)}
+    className="w-full border rounded-lg px-3 py-2"
+  >
+    <option value="NONE">NONE</option>
+    <option value="OPTION_1">OPTION 1</option>
+    <option value="OPTION_2">OPTION 2</option>
+  </select>
+</div>
           <div>
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Price ($)</label>
             <input 

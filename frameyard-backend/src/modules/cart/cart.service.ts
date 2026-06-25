@@ -1,3 +1,4 @@
+import { GlassType, MountType } from "@prisma/client";
 import prisma from "../../config/prisma";
 
 export const addToCart = async (userId: string,data: any) => {
@@ -142,10 +143,10 @@ export const getCart = async (
         frameSize:
           item.variant.frameSize,
 
-        hasBorder:
+        MountType:
           item.variant.mountType,
 
-        hasGlass:
+        GlassType:
           item.variant.glassType,
 
         price,

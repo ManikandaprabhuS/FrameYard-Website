@@ -17,12 +17,12 @@ export const OrdersPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  // New Order State
-  const [custName, setCustName] = useState('');
-  const [custEmail, setCustEmail] = useState('');
-  const [custPhone, setCustPhone] = useState('');
-  const [itemsCount, setItemsCount] = useState('1');
-  const [orderAmount, setOrderAmount] = useState('');
+  //  New Order State
+  // const [custName, setCustName] = useState('');
+  // const [custEmail, setCustEmail] = useState('');
+  // const [custPhone, setCustPhone] = useState('');
+  // const [itemsCount, setItemsCount] = useState('1');
+  // const [orderAmount, setOrderAmount] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -62,15 +62,15 @@ export const OrdersPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleCreateOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-  //  setNewOrderModalOpen(false);
-    setCustName('');
-    setCustEmail('');
-    setCustPhone('');
-    setItemsCount('1');
-    setOrderAmount('');
-  };
+  // const handleCreateOrder = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setNewOrderModalOpen(false);
+  //   setCustName('');
+  //   setCustEmail('');
+  //   setCustPhone('');
+  //   setItemsCount('1');
+  //   setOrderAmount('');
+  // };
 
   const getDropdownStyles = (status: OrderStatus) => {
     switch (status) {
@@ -105,7 +105,7 @@ export const OrdersPage: React.FC = () => {
   const getItemsCount = (order: Order) =>
     order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
   const getVariantName = (item: Order['orderItems'][number]) =>
-    `${item.frameSize} (${item.hasBorder ? 'Border' : 'No Border'}, ${item.hasGlass ? 'Glass' : 'No Glass'})`;
+    `${item.frameSize} (${item.mountType? 'Border' : 'No Border'}, ${item.glassType ? 'Glass' : 'No Glass'})`;
 
   const headers = [
     { key: 'id', label: 'Order ID', w: '24' },
@@ -234,12 +234,12 @@ export const OrdersPage: React.FC = () => {
           
           // Desktop Row Renderer
           renderRow={(order) => (
-            <tr key={order.id} className="border-b border-outline-variant hover:bg-surface/30 transition-colors group">
+            <tr key= {order.orderNumber} className="border-b border-outline-variant hover:bg-surface/30 transition-colors group">
               <td 
                 onClick={() => openOrderDetails(order)}
                 className="px-6 py-4 font-semibold text-primary cursor-pointer hover:underline"
               >
-                {order.id}
+                 {order.orderNumber}
               </td>
               <td className="px-6 py-4">
                 <div className="font-semibold text-on-surface">{getCustomerName(order)}</div>
@@ -281,14 +281,14 @@ export const OrdersPage: React.FC = () => {
 
           // Mobile Card Renderer
           renderCard={(order) => (
-            <div key={order.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm space-y-3 relative group">
+            <div key= {order.orderNumber} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm space-y-3 relative group">
               <div className="flex justify-between items-start">
                 <div>
                   <span 
                     onClick={() => openOrderDetails(order)}
                     className="text-xs font-bold text-primary cursor-pointer hover:underline"
                   >
-                    {order.id}
+                     {order.orderNumber}
                   </span>
                   <div className="text-sm font-semibold text-on-surface mt-1">{getCustomerName(order)}</div>
                 </div>
@@ -340,7 +340,7 @@ export const OrdersPage: React.FC = () => {
       <Modal
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
-        title={`Order Details: ${selectedOrder?.id}`}
+        title={`Order Details: ${selectedOrder?.orderNumber}`}
       >
         {selectedOrder && (
           <div className="space-y-6">
