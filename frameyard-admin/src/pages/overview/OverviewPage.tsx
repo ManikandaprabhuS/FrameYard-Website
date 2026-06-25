@@ -12,7 +12,8 @@ import {
   Package, 
   ArrowRight,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  IndianRupee
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -114,37 +115,25 @@ export const OverviewPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard
           title="Total Revenue"
-          value={`$${calculatedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={DollarSign}
-          trend="+14.5%"
-          trendType="up"
-          trendText="from last month"
+          value={`₹${calculatedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={IndianRupee}
         />
         <KpiCard
           title="Total Orders"
           value={calculatedOrders.toLocaleString('en-US')}
           icon={ShoppingBag}
-          trend="+5.2%"
-          trendType="up"
-          trendText="from last month"
           onClick={() => navigate('/admin/orders')}
         />
         <KpiCard
           title="Total Customers"
           value={calculatedCustomers.toLocaleString('en-US')}
           icon={Users}
-          trend="+1.1%"
-          trendType="neutral"
-          trendText="from last month"
           onClick={() => navigate('/admin/customers')}
         />
         <KpiCard
           title="Active Products"
           value={calculatedProducts}
           icon={Package}
-          trend="-2"
-          trendType="down"
-          trendText="items out of stock"
           onClick={() => navigate('/admin/products')}
         />
       </div>
@@ -169,7 +158,7 @@ export const OverviewPage: React.FC = () => {
                 <YAxis tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: '#6b7280' }} tickFormatter={(v) => `$${v}`} />
                 <Tooltip 
                   contentStyle={{ background: '#fff', border: '1px solid #c3c6d7', borderRadius: '8px', fontSize: '12px' }}
-                  formatter={(value) => [`$${value}`, 'Revenue']}
+                  formatter={(value) => [`₹${value}`, 'Revenue']}
                 />
                 <Line
                   type="monotone"
@@ -191,7 +180,7 @@ export const OverviewPage: React.FC = () => {
             <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders')}>
               <div className="flex items-center gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                <span className="text-xs font-semibold text-on-surface">Pending</span>
+                <span className="text-xs font-semibold text-on-surface">Pending Payment</span>
               </div>
               <span className="text-xs font-bold text-on-surface">{pendingCount}</span>
             </div>
@@ -222,7 +211,7 @@ export const OverviewPage: React.FC = () => {
 
             <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer mt-auto" onClick={() => navigate('/admin/orders')}>
               <div className="flex items-center gap-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-error" />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 block"/>
                 <span className="text-xs font-semibold text-on-surface">Cancelled</span>
               </div>
               <span className="text-xs font-bold text-on-surface">{cancelledCount}</span>
@@ -249,6 +238,7 @@ export const OverviewPage: React.FC = () => {
                 <tr className="border-b border-outline-variant bg-surface text-secondary text-xs font-semibold">
                   <th className="p-4 uppercase tracking-wider">Order ID</th>
                   <th className="p-4 uppercase tracking-wider">Customer</th>
+                  <th className="p-4 uppercase tracking-wider">Address</th>
                   <th className="p-4 uppercase tracking-wider text-right">Amount</th>
                   <th className="p-4 uppercase tracking-wider">Status</th>
                 </tr>
@@ -258,7 +248,8 @@ export const OverviewPage: React.FC = () => {
                   <tr key={order.id} className="hover:bg-surface transition-colors">
                     <td className="p-4 font-semibold text-primary">{order.id}</td>
                     <td className="p-4 text-on-surface-variant">{order.user?.name || 'Unknown Customer'}</td>
-                    <td className="p-4 text-right font-semibold">${Number(order.totalAmount).toFixed(2)}</td>
+                    <td className="p-4 font-semibold text-primary">{order.addressLine}</td>
+                    <td className="p-4 text-right font-semibold">₹{Number(order.totalAmount).toFixed(2)}</td>
                     <td className="p-4">{getOrderStatusBadge(order.orderStatus)}</td>
                   </tr>
                 ))}
@@ -279,7 +270,7 @@ export const OverviewPage: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-outline-variant bg-surface text-secondary text-xs font-semibold">
-                  <th className="p-4 uppercase tracking-wider">Product</th>
+                  <th className="p-4 uppercase tracking-wider">Product Name</th>
                   <th className="p-4 uppercase tracking-wider">Variant</th>
                   <th className="p-4 uppercase tracking-wider text-right">Stock</th>
                   <th className="p-4 uppercase tracking-wider">Status</th>

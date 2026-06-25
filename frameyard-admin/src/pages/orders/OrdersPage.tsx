@@ -18,7 +18,6 @@ export const OrdersPage: React.FC = () => {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   // New Order State
-  const [newOrderModalOpen, setNewOrderModalOpen] = useState(false);
   const [custName, setCustName] = useState('');
   const [custEmail, setCustEmail] = useState('');
   const [custPhone, setCustPhone] = useState('');
@@ -65,7 +64,7 @@ export const OrdersPage: React.FC = () => {
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNewOrderModalOpen(false);
+  //  setNewOrderModalOpen(false);
     setCustName('');
     setCustEmail('');
     setCustPhone('');
@@ -91,6 +90,16 @@ export const OrdersPage: React.FC = () => {
   };
 
   const getCustomerName = (order: Order) => order.user?.name || 'Unknown Customer';
+  const getCustomerAddress = (order: Order) =>
+  [
+    order.addressLine,
+    order.cityName,
+    order.stateName,
+    order.countryName,
+    order.postalCode,
+  ]
+    .filter(Boolean)
+    .join(', ') || 'No address';
   const getCustomerEmail = (order: Order) => order.user?.email || 'No email';
   const getCustomerPhone = (order: Order) => order.user?.phoneNumber || order.phoneNumber;
   const getItemsCount = (order: Order) =>
@@ -100,12 +109,12 @@ export const OrdersPage: React.FC = () => {
 
   const headers = [
     { key: 'id', label: 'Order ID', w: '24' },
-    { key: 'customer', label: 'Customer' },
+    { key: 'customer', label: 'Customer Details' },
     { key: 'phone', label: 'Phone' },
     { key: 'items', label: 'Items', align: 'right' as const },
     { key: 'amount', label: 'Amount', align: 'right' as const },
     { key: 'status', label: 'Status' },
-    { key: 'date', label: 'Date' },
+    { key: 'date', label: 'Order Date' },
     { key: 'actions', label: 'Actions', align: 'right' as const },
   ];
 
@@ -118,13 +127,6 @@ export const OrdersPage: React.FC = () => {
           <h2 className="text-3xl font-bold text-on-surface">Orders Management</h2>
           <p className="text-sm text-secondary mt-1">View, track, and manage all customer orders.</p>
         </div>
-        <button
-          onClick={() => setNewOrderModalOpen(true)}
-          className="bg-primary text-on-primary font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-primary/95 transition-all shadow-sm flex items-center justify-center gap-1.5 h-10 hover:scale-[1.01]"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Order</span>
-        </button>
       </div>
 
       {/* Summary KPI Cards Grid */}
@@ -136,7 +138,7 @@ export const OrdersPage: React.FC = () => {
           </div>
           <div className="text-xl font-bold text-on-surface">{totalCount.toLocaleString('en-US')}</div>
           <div className="text-[10px] text-tertiary mt-1 flex items-center gap-0.5">
-            <span className="font-semibold">+12%</span> this month
+            <span className="font-semibold"></span> Total orders
           </div>
         </div>
 
@@ -170,7 +172,7 @@ export const OrdersPage: React.FC = () => {
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm col-span-2 md:col-span-1">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-semibold text-secondary uppercase">Cancelled</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-error" />
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 block" />
           </div>
           <div className="text-xl font-bold text-on-surface">{cancelledCount}</div>
           <div className="text-[10px] text-secondary mt-1">Refunded</div>
@@ -242,10 +244,11 @@ export const OrdersPage: React.FC = () => {
               <td className="px-6 py-4">
                 <div className="font-semibold text-on-surface">{getCustomerName(order)}</div>
                 <div className="text-[11px] text-secondary mt-0.5">{getCustomerEmail(order)}</div>
+                <div className="text-[10px] text-secondary mt-0.5">{getCustomerAddress(order)}</div>
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{getCustomerPhone(order)}</td>
               <td className="px-6 py-4 text-right font-medium">{getItemsCount(order)}</td>
-              <td className="px-6 py-4 text-right font-bold text-on-surface">${Number(order.totalAmount).toFixed(2)}</td>
+              <td className="px-6 py-4 text-right font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</td>
               <td className="px-6 py-4">
                 {/* Styled Select Dropdown matching Stitch badge layout */}
                 <select
@@ -407,92 +410,9 @@ export const OrdersPage: React.FC = () => {
       </Modal>
 
       {/* ------------------------------------------------------------- */}
-      {/* CREATE ORDER MODAL */}
+      {/* CREATE ORDER MODAL - Admin don't create order Manually*/}
       {/* ------------------------------------------------------------- */}
-      <Modal
-        isOpen={newOrderModalOpen}
-        onClose={() => setNewOrderModalOpen(false)}
-        title="Create New Order"
-        footer={
-          <>
-            <button 
-              type="button" 
-              onClick={() => setNewOrderModalOpen(false)}
-              className="px-4 py-2 border border-outline-variant rounded-lg text-xs font-semibold hover:bg-surface"
-            >
-              Cancel
-            </button>
-            <button 
-              type="button" 
-              onClick={handleCreateOrder}
-              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:bg-primary/95"
-            >
-              Submit Order
-            </button>
-          </>
-        }
-      >
-        <form onSubmit={handleCreateOrder} className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Customer Name</label>
-            <input 
-              type="text" 
-              value={custName}
-              onChange={(e) => setCustName(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
-              placeholder="e.g. Johnathan Doe"
-              required
-            />
-          </div>
 
-          <div className="col-span-2">
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Email Address</label>
-            <input 
-              type="email" 
-              value={custEmail}
-              onChange={(e) => setCustEmail(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
-              placeholder="e.g. john@domain.com"
-              required
-            />
-          </div>
-
-          <div className="col-span-2">
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Phone Number</label>
-            <input 
-              type="tel" 
-              value={custPhone}
-              onChange={(e) => setCustPhone(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
-              placeholder="e.g. (555) 019-2834"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Quantity of Items</label>
-            <input 
-              type="number" 
-              value={itemsCount}
-              onChange={(e) => setItemsCount(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
-              min="1"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Total Amount ($)</label>
-            <input 
-              type="number" 
-              value={orderAmount}
-              onChange={(e) => setOrderAmount(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
-              placeholder="e.g. 245.00"
-              required
-            />
-          </div>
-        </form>
-      </Modal>
 
     </div>
   );

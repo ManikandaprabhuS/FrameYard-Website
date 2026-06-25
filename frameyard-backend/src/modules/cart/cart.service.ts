@@ -143,10 +143,10 @@ export const getCart = async (
           item.variant.frameSize,
 
         hasBorder:
-          item.variant.hasBorder,
+          item.variant.mountType,
 
         hasGlass:
-          item.variant.hasGlass,
+          item.variant.glassType,
 
         price,
 

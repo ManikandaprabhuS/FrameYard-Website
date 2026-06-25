@@ -75,9 +75,9 @@ export const AdminLayout: React.FC = () => {
       {/* ------------------------------------------------------------- */}
       <aside className="hidden md:flex w-sidebar-width h-screen fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant flex-col py-stack-lg px-stack-md z-50">
         <div className="mb-8 px-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary font-bold">F</div>
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary font-bold">FY</div>
           <div>
-            <h1 className="font-sans text-lg font-bold text-on-surface leading-tight">FrameYard</h1>
+            <h1 className="font-sans text-lg font-bold text-on-surface leading-tight">FrameYaad</h1>
             <p className="text-xs font-semibold text-secondary tracking-wider uppercase opacity-80">Admin Console</p>
           </div>
         </div>

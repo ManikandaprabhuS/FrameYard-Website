@@ -10,8 +10,8 @@ type VariantForm = {
   id: string;
   productId?: string;
   frameSize: string;
-  hasBorder: boolean;
-  hasGlass: boolean;
+  mountType: string;
+  glassType: string
   price: number;
   offerPrice?: number | null;
   stockQuantity: number;

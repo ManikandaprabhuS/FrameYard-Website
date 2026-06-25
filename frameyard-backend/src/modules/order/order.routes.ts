@@ -6,7 +6,7 @@ import { authorizeAdmin } from "../../middlewares/admin.middleware";
 
 const router = Router();
 
-router.post("/",authenticateUser,authorizeCustomer,checkout);
+router.post("/checkout",authenticateUser,authorizeCustomer,checkout);
 router.get("/",authenticateUser,authorizeCustomer,fetchMyOrders);
 router.get("/admin",authenticateUser,authorizeAdmin,fetchAllOrders);
 router.patch("/admin/:id/status",authenticateUser,authorizeAdmin,changeOrderStatus);

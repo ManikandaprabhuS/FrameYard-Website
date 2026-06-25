@@ -6,7 +6,6 @@ export const checkout = async (
   req: AuthRequest,
   res: Response
 ) => {
-
   const result =await createOrder(req.user!.id);
   return res.status(200).json(result);
 };

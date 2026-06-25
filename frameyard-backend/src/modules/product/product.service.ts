@@ -90,8 +90,8 @@ export const createVariant = async (
       data: {
         productId,
         frameSize: data.frameSize,
-        hasBorder: data.hasBorder,
-        hasGlass: data.hasGlass,
+        mountType: data.mountType,
+        glassType: data.glassType,
         price: data.price,
         offerPrice: data.offerPrice,
         stockQuantity: data.stockQuantity,
@@ -176,8 +176,8 @@ export const updateVariant = async (
       },
       data: {
         frameSize: data.frameSize,
-        hasBorder: data.hasBorder,
-        hasGlass: data.hasGlass,
+        mountType: data.mountType,
+        glassType: data.glassType,
         price: data.price,
         offerPrice: data.offerPrice,
         stockQuantity: data.stockQuantity,

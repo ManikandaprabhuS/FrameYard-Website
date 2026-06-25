@@ -162,7 +162,7 @@ export const ProductsPage: React.FC = () => {
           <span className="text-xs font-semibold text-on-surface-variant">Total Products</span>
           <span className="text-2xl font-bold text-on-surface">{products.length}</span>
           <span className="text-[11px] text-tertiary font-medium flex items-center gap-0.5">
-            Active Catalog Items
+            Overall Products 
           </span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
@@ -170,7 +170,7 @@ export const ProductsPage: React.FC = () => {
           <span className="text-2xl font-bold text-on-surface">
             {products.reduce((sum, p) => sum + p.variants.length, 0)}
           </span>
-          <span className="text-[11px] text-on-surface-variant/80">Standard framing sizes</span>
+          <span className="text-[11px] text-on-surface-variant/80">Standard Variant sizes</span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <span className="text-xs font-semibold text-on-surface-variant">Low Stock Alerts</span>
@@ -180,10 +180,13 @@ export const ProductsPage: React.FC = () => {
           <span className="text-[11px] text-error font-medium">Requires attention</span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <span className="text-xs font-semibold text-on-surface-variant">Avg. Fulfillment</span>
-          <span className="text-2xl font-bold text-on-surface">2.4 Days</span>
-          <span className="text-[11px] text-secondary font-medium">Efficient processing</span>
-        </div>
+          <span className="text-xs font-semibold text-on-surface-variant"> Active Products</span>
+          <span className="text-2xl font-bold text-on-surface">
+             {products.filter(product => product.isActive).length} </span>
+  <span className="text-[11px] text-secondary font-medium">
+    Currently Active Products
+  </span>
+</div>
       </div>
 
       {/* Filters Bar */}
@@ -276,7 +279,7 @@ export const ProductsPage: React.FC = () => {
               <td className="px-6 py-4 text-on-surface-variant">{product.variants?.length || 0} Variants</td>
               <td className="px-6 py-4">
                 <div className="flex justify-center">
-                  <Badge type={stockInfo.type}>{stockInfo.label}</Badge>
+                  <Badge type={stockInfo.type}  className="min-w-[100px] justify-center"> {stockInfo.label}</Badge>
                 </div>
               </td>
               <td className="px-6 py-4">
@@ -333,7 +336,7 @@ export const ProductsPage: React.FC = () => {
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex justify-between items-start gap-2">
                   <h4 className="font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{product.name}</h4>
-                  <Badge type={stockInfo.type}>{stockInfo.label}</Badge>
+                  <Badge type={stockInfo.type} className="min-w-[100px] justify-center">  {stockInfo.label}</Badge>
                 </div>
                 <p className="text-xs text-on-surface-variant mt-0.5">{product.material} • {product.variants?.length || 0} Variants</p>
                 <div className="flex items-center gap-3 mt-auto pt-2">

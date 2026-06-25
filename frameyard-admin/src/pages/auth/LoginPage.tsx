@@ -4,8 +4,8 @@ import useAuth from '../../hooks/useAuth';
 import { LogIn } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('admin@frameyard.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const { login, loading, error, isAuthenticated, clearError } = useAuth();
   const navigate = useNavigate();
 
@@ -35,9 +35,9 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-md bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-xl p-8 flex flex-col">
         <div className="flex flex-col items-center mb-8 text-center">
           <div className="w-12 h-12 bg-primary text-on-primary rounded-xl flex items-center justify-center font-bold text-xl mb-4">
-            F
+            FY
           </div>
-          <h2 className="text-2xl font-bold text-on-surface">FrameYard Admin</h2>
+          <h2 className="text-2xl font-bold text-on-surface">FrameYaad Admin</h2>
           <p className="text-sm text-on-surface-variant mt-1">Sign in to manage your store console.</p>
         </div>
 
@@ -49,7 +49,7 @@ export const LoginPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 " >
               Email Address
             </label>
             <input
@@ -93,9 +93,7 @@ export const LoginPage: React.FC = () => {
         </form>
 
         <div className="mt-6 pt-6 border-t border-outline-variant text-center">
-          <p className="text-xs text-on-surface-variant/80">
-            For demo access, use the pre-filled credentials.
-          </p>
+          
         </div>
       </div>
     </div>

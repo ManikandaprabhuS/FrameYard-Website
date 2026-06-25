@@ -17,7 +17,12 @@ export const createOrder = async (
       message: "User not found",
     };
   }
-
+if (user.role !== "CUSTOMER") {
+  return {
+    success: false,
+    message: "Only customers can place orders",
+  };
+}
   if (
     !user.phoneNumber ||
     !user.addressLine ||
@@ -78,10 +83,12 @@ export const createOrder = async (
     totalAmount +=
       price * item.quantity;
   }
+  const orderNumber = `FY-${Date.now().toString().slice(-8)}`;
 
   const order = await prisma.order.create({
     data: {
       userId: user.id,
+      orderNumber,
       totalAmount,
       phoneNumber: user.phoneNumber,
       addressLine: user.addressLine,
@@ -113,10 +120,10 @@ export const createOrder = async (
           item.variant.product.name,
         frameSize:
           item.variant.frameSize,
-        hasBorder:
-          item.variant.hasBorder,
-        hasGlass:
-          item.variant.hasGlass,
+        mountType:
+          item.variant.mountType,
+        glassType:
+          item.variant.glassType,
         price,
         quantity:
           item.quantity,
@@ -147,6 +154,7 @@ export const createOrder = async (
     success: true,
     message: "Order placed successfully",
     orderId: order.id,
+    orderNumber: order.orderNumber,
   };
 };
 
