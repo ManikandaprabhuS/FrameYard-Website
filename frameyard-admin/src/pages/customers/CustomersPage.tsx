@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
+import { Link } from 'react-router-dom';
 import { DataTable } from '../../components/tables/DataTable';
 import Badge from '../../components/ui/Badge';
 import { Search, Mail, Phone, ShoppingBag, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { Customer } from '../../types';
+
+
 
 const getCustomerStatus = (customer: Customer): 'new' | 'active' | 'inactive' => {
   const daysSinceJoin = (Date.now() - new Date(customer.createdAt).getTime()) / (1000 * 60 * 60 * 24);
@@ -22,13 +25,18 @@ const getStatusBadgeType = (status: string) => {
 };
 
 const formatOrderId = (id: string) => `#${id.slice(0, 8).toUpperCase()}`;
-
 const getTotalSpent = (customer: Customer) =>
   customer.orders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
 
 export const CustomersPage: React.FC = () => {
-  const { customers, loading } = useCustomers(true);
+ const {  customers,  loading, fetchCustomers} = useCustomers(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const PAGE_SIZE = 10;
+  useEffect(() => {
+  fetchCustomers(currentPage, PAGE_SIZE);
+}, [currentPage, fetchCustomers]);
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filteredCustomers = customers.filter(
@@ -70,13 +78,18 @@ export const CustomersPage: React.FC = () => {
                 {customer.name.charAt(0)}
               </div>
               <div>
-                <div className="font-semibold text-on-surface group-hover:text-primary transition-colors text-sm">
-                  {customer.name}
-                </div>
-                <div className="text-[11px] text-on-surface-variant">
-                  ID: {customer.id.slice(0, 8)}…
-                </div>
-              </div>
+  <Link
+    to={`/admin/customers/${customer.id}`}
+    onClick={(e) => e.stopPropagation()}
+    className="font-semibold text-primary hover:underline text-sm"
+  >
+    {customer.name}
+  </Link>
+
+  <div className="text-[11px] text-on-surface-variant">
+    ID: {customer.id.slice(0, 8)}…
+  </div>
+</div>
             </div>
           </td>
 
@@ -353,8 +366,37 @@ export const CustomersPage: React.FC = () => {
             : "No customers have registered yet. Share your store link to get started!"
         }
       />
+      <div className="flex items-center justify-center gap-3 mt-6">
+  <button
+    onClick={() =>
+      setCurrentPage((prev) =>
+        Math.max(prev - 1, 1)
+      )
+    }
+    disabled={currentPage === 1}
+    className="px-4 py-2 border border-outline-variant rounded-lg disabled:opacity-50"
+  >
+    Previous
+  </button>
+
+  <span className="text-sm font-medium">
+    Page {currentPage}
+  </span>
+
+  <button
+    onClick={() =>
+      setCurrentPage((prev) => prev + 1)
+    }
+    className="px-4 py-2 border border-outline-variant rounded-lg"
+  >
+    Next
+  </button>
+</div>
     </div>
   );
+  
 };
+
+
 
 export default CustomersPage;

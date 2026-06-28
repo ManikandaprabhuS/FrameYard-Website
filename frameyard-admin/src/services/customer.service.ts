@@ -1,20 +1,39 @@
 import api from './api';
 import { Customer } from '../types';
 
-export const customerService = {
-  getCustomers: async (): Promise<Customer[]> => {
-    const response = await api.get('/customers');
-    return response.data.data || [];
-  },
+export interface CustomerResponse {
+  customers: Customer[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
-  getCustomerById: async (id: string): Promise<Customer> => {
-    const customers = await customerService.getCustomers();
-    const customer = customers.find((item) => item.id === id);
-    if (!customer) {
-      throw new Error('Customer not found');
-    }
-    return customer;
+export const customerService = {
+  getCustomerById: async (
+  id: string
+) => {
+
+  const response =
+    await api.get(
+      `/customers/${id}`
+    );
+
+  return response.data.customer;
+},
+
+  getCustomers: async (
+    page: number = 1,
+    limit: number = 10
+    
+  ): Promise<CustomerResponse> => {
+    const response = await api.get(
+      `/customers?page=${page}&limit=${limit}`
+    );
+
+    return response.data;
   },
 };
+
 
 export default customerService;

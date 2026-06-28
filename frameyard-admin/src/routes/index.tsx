@@ -9,22 +9,15 @@ import ProductsPage from '../pages/products/ProductsPage';
 import ProductDetailsPage from '../pages/products/ProductDetailsPage';
 import OrdersPage from '../pages/orders/OrdersPage';
 import CustomersPage from '../pages/customers/CustomersPage';
+import CustomerDetailsPage from '../pages/customers/CustomerDetailsPage';
 import NotificationsPage from '../pages/notifications/NotificationsPage';
 import ProfilePage from '../pages/profile/ProfilePage';
 import SettingsPage from '../pages/settings/SettingsPage';
 
 export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Navigate to="/admin/overview" replace />,
-  },
-  {
-    path: '/login',
-    element: <LoginPage />,
-  },
-  {
-    path: '/admin',
-    element: <ProtectedRoute />,
+  {path: '/', element: <Navigate to="/admin/overview" replace />,},
+  {path: '/login',element: <LoginPage />,},
+  {path: '/admin',element: <ProtectedRoute />,
     children: [
       {
         element: <AdminLayout />,
@@ -58,6 +51,10 @@ export const router = createBrowserRouter([
             element: <CustomersPage />,
           },
           {
+            path: 'customers/:id',
+            element: <CustomerDetailsPage />,
+          },
+          {
             path: 'notifications',
             element: <NotificationsPage />,
           },
@@ -73,10 +70,7 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  {
-    path: '*',
-    element: <Navigate to="/admin/overview" replace />,
-  },
+  {path: '*', element: <Navigate to="/admin/overview" replace />,},
 ]);
 
 export default router;
