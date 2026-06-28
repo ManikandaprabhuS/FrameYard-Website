@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 
 export const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, loading, checkAuth } = useAuth();
+  const { user, isAuthenticated, loading, checkAuth } = useAuth();
 
   useEffect(() => {
     checkAuth();
@@ -18,7 +18,11 @@ export const ProtectedRoute: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) {
+   if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'ADMIN') {
     return <Navigate to="/login" replace />;
   }
 

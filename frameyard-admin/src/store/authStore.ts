@@ -70,14 +70,36 @@ export const useAuthStore = create<AuthState>((set) => ({
 },
 
   logout: async () => {
-    set({ loading: true });
-    try {
-      await authService.logout();
-      set({ user: null, token: null, isAuthenticated: false, loading: false });
-    } catch (err) {
-      set({ user: null, token: null, isAuthenticated: false, loading: false });
-    }
-  },
+  set({ loading: true });
+
+  try {
+    await authService.logout();
+
+    localStorage.removeItem(
+      "fy_auth_token"
+    );
+
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      loading: false,
+    });
+
+  } catch {
+
+    localStorage.removeItem(
+      "fy_auth_token"
+    );
+
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      loading: false,
+    });
+  }
+},
 
   checkAuth: async () => {
 

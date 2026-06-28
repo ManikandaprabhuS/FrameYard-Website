@@ -92,7 +92,6 @@ if (authUser.email_confirmed_at && !user.isEmailVerified) {
       isEmailVerified: true,
     },
   });
-
   console.log("After Update:", updatedUser.isEmailVerified);
 }
   return {
@@ -149,5 +148,49 @@ export const updateProfile = async (
     success: true,
     message: "Profile updated successfully",
     user: updatedUser,
+  };
+};
+
+export const adminLoginUser = async (data: any) => {
+  const { email, password } = data;
+
+  const { data: authData, error } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+  if (error) {
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!user) {
+    return {
+      success: false,
+      message: "User profile not found",
+    };
+  }
+
+  if (user.role !== "ADMIN") {
+    return {
+      success: false,
+      message: "Access denied. Admin account required.",
+    };
+  }
+
+  return {
+    success: true,
+    message: "Admin login successful",
+    user,
+    session: authData.session,
   };
 };

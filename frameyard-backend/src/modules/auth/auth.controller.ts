@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getProfile, loginUser, registerUser, updateProfile } from "./auth.service";
+import { adminLoginUser, getProfile, loginUser, registerUser, updateProfile } from "./auth.service";
 import { AuthRequest } from "../../middlewares/auth.middleware";
 
 export const register = async (
@@ -7,6 +7,16 @@ export const register = async (
   res: Response
 ) => {
   const result = await registerUser(req.body);
+
+  return res.status(200).json(result);
+};
+
+export const adminLogin = async (
+  req: Request,
+  res: Response
+) => {
+
+  const result = await adminLoginUser(req.body);
 
   return res.status(200).json(result);
 };
