@@ -18,18 +18,27 @@ export const getAllCustomers = async (
       skip,
       take: limit,
       include: {
-        orders: {
-          select: {
-            id: true,
-            orderStatus: true,
-            totalAmount: true,
-            createdAt: true,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
+  orders: {
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    include: {
+      orderItems: {
+        select: {
+          id: true,
+          productName: true,
+          frameSize: true,
+          mountType: true,
+          glassType: true,
+          quantity: true,
+          price: true,
+          subtotal: true,
         },
       },
+    },
+  },
+},
     }),
 
     prisma.user.count({

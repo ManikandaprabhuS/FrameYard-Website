@@ -1,5 +1,3 @@
-// customer.controller.ts
-
 import { Request, Response } from "express";
 import { getAllCustomers, getCustomerById } from "./customer.service";
 

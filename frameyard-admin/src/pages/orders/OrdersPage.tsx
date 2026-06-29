@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import useOrders from '../../hooks/useOrders';
 import DataTable from '../../components/tables/DataTable';
-import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
-import { Search, Calendar, Filter, Plus, ArrowRight, Eye, Mail, Phone, ShoppingCart } from 'lucide-react';
+import { Search, Calendar, ArrowRight, Eye, Mail, Phone, ShoppingCart, Download } from 'lucide-react';
 import { Order, OrderStatus } from '../../types';
 
 export const OrdersPage: React.FC = () => {
@@ -12,17 +11,11 @@ export const OrdersPage: React.FC = () => {
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [dateFilter, setDateFilter] =   useState("30");
 
   // Details Modal State
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-
-  //  New Order State
-  // const [custName, setCustName] = useState('');
-  // const [custEmail, setCustEmail] = useState('');
-  // const [custPhone, setCustPhone] = useState('');
-  // const [itemsCount, setItemsCount] = useState('1');
-  // const [orderAmount, setOrderAmount] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -43,34 +36,95 @@ export const OrdersPage: React.FC = () => {
     setSelectedOrder(order);
     setDetailsModalOpen(true);
   };
+  const exportOrdersReport = () => {
+  const rows = orders.flatMap((order) => {
+    return order.orderItems.map((item) => ({
+      OrderNumber: order.orderNumber,
+      CustomerName:
+        order.user?.name || "",
+      Email:
+        order.user?.email || "",
+      Phone:
+        order.user?.phoneNumber ||
+        order.phoneNumber,
+      OrderStatus:
+        order.orderStatus,
+      OrderDate:
+        new Date(
+          order.createdAt
+        ).toLocaleDateString(),
+      ProductName:
+        item.productName,
+      FrameSize:
+        item.frameSize,
+      MountType:
+        item.mountType,
+      GlassType:
+        item.glassType,
+      Quantity:
+        item.quantity,
+      Price:
+        item.price,
+      Subtotal:
+        item.subtotal,
+      OrderTotal:
+        order.totalAmount,
+    }));
+  });
+  if (!rows.length) {
+    alert("No orders found");
+    return;
+  }
+  const csv = [
+    Object.keys(rows[0]).join(","),
+    ...rows.map((row) =>
+      Object.values(row)
+        .map((value) => `"${value}"`)
+        .join(",")
+    ),
+  ].join("\n");
+  const blob = new Blob(
+    [csv],
+    {
+      type: "text/csv;charset=utf-8;",
+    }
+  );
+  const url =
+    window.URL.createObjectURL(
+      blob
+    );
+  const link =
+    document.createElement("a");
+  link.href = url;
+  link.download =
+    `orders-report-${Date.now()}.csv`;
+  link.click();
+  window.URL.revokeObjectURL(url);
+};
 
+  const getCustomerName = (order: Order) => order.user?.name || 'Unknown Customer';
   // Filtered Orders
   const filteredOrders = orders.filter(o => {
-    const customerName = o.user?.name || '';
-    const customerEmail = o.user?.email || '';
-    const customerPhone = o.user?.phoneNumber || o.phoneNumber || '';
-    const matchesSearch = 
-      o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customerPhone.includes(searchTerm);
-      
-    const matchesStatus = 
-      statusFilter === 'all' || 
-      o.orderStatus === statusFilter;
+    const matchesSearch =
+    o.orderNumber
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase()) ||
+    getCustomerName(o)
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesStatus;
+  const matchesStatus =
+    statusFilter === "all"
+      ? true
+      : o.orderStatus === statusFilter;
+    const orderDate =new Date(o.createdAt);
+    const today =  new Date();
+    const daysDifference = (today.getTime() - orderDate.getTime()) /
+  (1000 * 60 * 60 * 24);
+   const matchesDate = dateFilter === "all" ? true : daysDifference <= Number(dateFilter);
+    return ( matchesSearch &&   matchesStatus &&   matchesDate
+);
   });
-
-  // const handleCreateOrder = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setNewOrderModalOpen(false);
-  //   setCustName('');
-  //   setCustEmail('');
-  //   setCustPhone('');
-  //   setItemsCount('1');
-  //   setOrderAmount('');
-  // };
 
   const getDropdownStyles = (status: OrderStatus) => {
     switch (status) {
@@ -89,7 +143,6 @@ export const OrdersPage: React.FC = () => {
     }
   };
 
-  const getCustomerName = (order: Order) => order.user?.name || 'Unknown Customer';
   const getCustomerAddress = (order: Order) =>
   [
     order.addressLine,
@@ -120,7 +173,6 @@ export const OrdersPage: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -211,17 +263,46 @@ export const OrdersPage: React.FC = () => {
                 <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
-
             {/* Mock Calendar Date */}
-            <div className="flex items-center bg-surface border border-outline-variant rounded-lg px-3 py-1.5 cursor-pointer hover:border-outline transition-colors w-full sm:w-auto">
-              <Calendar className="w-4 h-4 text-outline-variant mr-2" />
-              <span className="text-xs text-on-surface">Last 30 Days</span>
-            </div>
-          </div>
-          
-          <button className="text-secondary hover:text-on-surface text-xs font-semibold flex items-center gap-1 transition-colors self-end md:self-auto">
-            <Filter className="w-3.5 h-3.5" /> More Filters
+         <div className="flex items-center gap-3">
+
+  <div className="relative flex items-center">
+    <Calendar className="absolute left-3 w-4 h-4 text-outline-variant pointer-events-none" />
+
+    <select
+      value={dateFilter}
+      onChange={(e) =>
+        setDateFilter(e.target.value)
+      }
+      className="h-10 pl-10 pr-8 bg-surface border border-outline-variant rounded-lg text-sm text-on-surface outline-none"
+    >
+      <option value="7">
+        Last 7 Days
+      </option>
+
+      <option value="30">
+        Last 30 Days
+      </option>
+
+      <option value="90">
+        Last 90 Days
+      </option>
+
+      <option value="365">
+        Last 1 Year
+      </option>
+
+      <option value="all">
+        All Time
+      </option>
+    </select>
+  </div>
+  <button onClick={exportOrdersReport} className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface transition-colors flex items-center gap-1.5">
+            <Download className="w-4 h-4" />
+            <span>Export</span>
           </button>
+</div>
+          </div>
         </div>
 
         {/* Orders Table */}

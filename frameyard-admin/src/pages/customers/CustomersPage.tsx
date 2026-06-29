@@ -3,7 +3,7 @@ import { useCustomers } from '../../hooks/useCustomers';
 import { Link } from 'react-router-dom';
 import { DataTable } from '../../components/tables/DataTable';
 import Badge from '../../components/ui/Badge';
-import { Search, Mail, Phone, ShoppingBag, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Download,Mail, Phone, ShoppingBag, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { Customer } from '../../types';
 
 
@@ -34,10 +34,91 @@ export const CustomersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const PAGE_SIZE = 10;
   useEffect(() => {
-  fetchCustomers(currentPage, PAGE_SIZE);
-}, [currentPage, fetchCustomers]);
-
+  fetchCustomers(currentPage, PAGE_SIZE);}, [currentPage, fetchCustomers]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const exportCustomerReport = () => {
+
+  const rows = customers.flatMap((customer) => {
+
+    if (customer.orders.length === 0) {
+      return [{
+        CustomerName: customer.name,
+        Email: customer.email,
+        Phone: customer.phoneNumber,
+        Address: customer.addressLine,
+        City: customer.cityName,
+        State: customer.stateName,
+        OrderNumber: "",
+        OrderStatus: "",
+        ProductName: "",
+        FrameSize: "",
+        MountType: "",
+        GlassType: "",
+        Quantity: "",
+        Price: "",
+        Subtotal: "",
+      }];
+    }
+
+    return customer.orders.flatMap((order: any) => {
+
+      return order.orderItems.map((item: any) => ({
+        CustomerName: customer.name,
+        Email: customer.email,
+        Phone: customer.phoneNumber,
+        Address: customer.addressLine,
+        City: customer.cityName,
+        State: customer.stateName,
+
+        OrderNumber: order.orderNumber,
+        OrderStatus: order.orderStatus,
+
+        ProductName: item.productName,
+        FrameSize: item.frameSize,
+        MountType: item.mountType,
+        GlassType: item.glassType,
+        Quantity: item.quantity,
+        Price: item.price,
+        Subtotal: item.subtotal,
+      }));
+
+    });
+
+  });
+
+  const csvContent = [
+    Object.keys(rows[0]).join(","),
+    ...rows.map((row) =>
+      Object.values(row)
+        .map(value => `"${value ?? ""}"`)
+        .join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob(
+    [csvContent],
+    { type: "text/csv;charset=utf-8;" }
+  );
+
+  const url =
+    window.URL.createObjectURL(blob);
+
+  const link =
+    document.createElement("a");
+
+  link.href = url;
+
+  link.download =
+    `customers-report-${Date.now()}.csv`;
+
+  document.body.appendChild(link);
+
+  link.click();
+
+  document.body.removeChild(link);
+
+  window.URL.revokeObjectURL(url);
+};
 
   const filteredCustomers = customers.filter(
     (c) =>
@@ -281,10 +362,45 @@ export const CustomersPage: React.FC = () => {
   // Summary metrics
   const totalCustomers = customers.length;
   const withOrders = customers.filter(c => c.orders.length > 0).length;
-  const newThisMonth = customers.filter(c => {
-    const days = (Date.now() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-    return days <= 30;
-  }).length;
+  const now = new Date();
+
+const currentMonth = now.getMonth();
+const currentYear = now.getFullYear();
+
+const previousMonth =
+  currentMonth === 0 ? 11 : currentMonth - 1;
+
+const previousMonthYear =
+  currentMonth === 0
+    ? currentYear - 1
+    : currentYear;
+
+const newThisMonth = customers.filter((c) => {
+  const date = new Date(c.createdAt);
+
+  return (
+    date.getMonth() === currentMonth &&
+    date.getFullYear() === currentYear
+  );
+}).length;
+
+const newLastMonth = customers.filter((c) => {
+  const date = new Date(c.createdAt);
+
+  return (
+    date.getMonth() === previousMonth &&
+    date.getFullYear() === previousMonthYear
+  );
+}).length;
+
+const growthPercentage =
+  newLastMonth === 0
+    ? 100
+    : Math.round(
+        ((newThisMonth - newLastMonth) /
+          newLastMonth) *
+          100
+      );
   const verifiedCount = customers.filter(c => c.isEmailVerified).length;
 
   return (
@@ -318,7 +434,12 @@ export const CustomersPage: React.FC = () => {
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl shadow-sm flex flex-col gap-1">
           <span className="text-xs font-semibold text-on-surface-variant">New This Month</span>
           <span className="text-2xl font-bold text-secondary">{newThisMonth}</span>
-          <span className="text-[11px] text-secondary font-medium">Joined in last 30 days</span>
+          <span className={`text-[11px] font-medium ${growthPercentage >= 0? 'text-success': 'text-error'}`}
+>
+  {growthPercentage >= 0 ? '↑' : '↓'}{' '}
+  {Math.abs(growthPercentage)}%
+  vs last month
+</span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl shadow-sm flex flex-col gap-1">
           <span className="text-xs font-semibold text-on-surface-variant">Email Verified</span>
@@ -347,11 +468,14 @@ export const CustomersPage: React.FC = () => {
             Clear
           </button>
         )}
+  <button onClick={exportCustomerReport} className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface transition-colors flex items-center gap-1.5">
+            <Download className="w-4 h-4" />
+            <span>Export</span>
+          </button>
         <span className="ml-auto text-xs text-on-surface-variant hidden md:block">
           {filteredCustomers.length} of {totalCustomers} customers
         </span>
       </div>
-
       {/* Data Table */}
       <DataTable
         headers={headers}

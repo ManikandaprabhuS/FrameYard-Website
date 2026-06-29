@@ -51,19 +51,62 @@ const CustomerDetailsPage = () => {
       {customer.name.charAt(0)}
     </div>
 
-    <div>
-      <h1 className="text-3xl font-bold text-on-surface">
-        {customer.name}
-      </h1>
+   <div className="flex-1 flex items-center justify-between">
 
-      <p className="text-sm text-on-surface-variant">
-        Customer ID: {customer.id.slice(0, 8)}
-      </p>
+  <div>
+    <h1 className="text-3xl font-bold text-on-surface">
+      {customer.name}
+    </h1>
 
-      <p className="text-sm text-on-surface-variant">
-        Joined {new Date(customer.createdAt).toLocaleDateString("en-IN")}
-      </p>
-    </div>
+    <p className="text-sm text-on-surface-variant">
+      Customer ID: {customer.id.slice(0, 8)}
+    </p>
+
+    <p className="text-sm text-on-surface-variant">
+      Joined {new Date(customer.createdAt).toLocaleDateString("en-IN")}
+    </p>
+  </div>
+  <div className="space-y-2 min-w-[350px]">
+
+  <div className="flex items-center gap-2">
+    <span className="font-semibold text-on-surface">
+      Email:
+    </span>
+
+    <span className="text-on-surface-variant">
+      {customer.email}
+    </span>
+  </div>
+
+  <div className="flex items-center gap-2">
+    <span className="font-semibold text-on-surface">
+      Phone:
+    </span>
+
+    <span className="text-on-surface-variant">
+      {customer.phoneNumber}
+    </span>
+  </div>
+
+  <div className="flex items-start gap-2">
+    <span className="font-semibold text-on-surface">
+      Address:
+    </span>
+
+    <span className="text-on-surface-variant">
+      {customer.addressLine},
+      {" "}
+      {customer.cityName},
+      {" "}
+      {customer.stateName},
+      {" "}
+      {customer.countryName}
+      {" "}
+      {customer.postalCode}
+    </span>
+  </div>
+</div>
+</div>
   </div>
 </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
