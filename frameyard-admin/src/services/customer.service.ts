@@ -9,18 +9,29 @@ export interface CustomerResponse {
   totalPages: number;
 }
 
+export interface CustomerLookupResponse {
+  id: string;
+  name: string;
+  phoneNumber: string;
+}
+
 export const customerService = {
-  getCustomerById: async (
-  id: string
-) => {
+  getCustomerById: async (id: string) => {
+    const response = await api.get(`/customers/${id}`);
+    return response.data.customer;
+  },
 
-  const response =
-    await api.get(
-      `/customers/${id}`
-    );
+  lookupCustomerByPhoneNumber: async (
+    phoneNumber: string
+  ): Promise<CustomerLookupResponse> => {
+    const response = await api.get('/customers/lookup', {
+      params: {
+        phoneNumber,
+      },
+    });
 
-  return response.data.customer;
-},
+    return response.data.customer;
+  },
 
   getCustomers: async (
     page: number = 1,

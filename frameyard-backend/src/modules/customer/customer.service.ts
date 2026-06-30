@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../../config/prisma";
 
 export const getAllCustomers = async (
@@ -80,4 +81,38 @@ export const getCustomerById = async (
     });
 
   return customer;
+};
+
+export const getCustomerByPhoneNumber = async (
+  phoneNumber: string
+) => {
+  const normalizedPhoneNumber = phoneNumber.replace(/\D/g, "");
+  const phoneConditions: Prisma.UserWhereInput[] = [
+    {
+      phoneNumber,
+    },
+    {
+      phoneNumber: normalizedPhoneNumber,
+    },
+  ];
+
+  if (normalizedPhoneNumber) {
+    phoneConditions.push({
+      phoneNumber: {
+        contains: normalizedPhoneNumber,
+      },
+    });
+  }
+
+  return prisma.user.findFirst({
+    where: {
+      role: "CUSTOMER",
+      OR: phoneConditions,
+    },
+    select: {
+      id: true,
+      name: true,
+      phoneNumber: true,
+    },
+  });
 };

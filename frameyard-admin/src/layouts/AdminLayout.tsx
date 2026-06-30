@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import useNotifications from '../hooks/useNotifications';
+import { customerService } from '../services/customer.service';
 import { 
   LayoutDashboard, 
   Package, 
@@ -24,18 +25,56 @@ export const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { notifications, fetchNotifications, toggleNotificationRead } = useNotifications(true);
+  const { notifications, toggleNotificationRead } = useNotifications(true);
   const avatarInitial = user?.name?.charAt(0) || 'U';
 
   // Close mobile drawer on route change
   useEffect(() => {
-    setMobileMenuOpen(false);
-    setNotifDropdownOpen(false);
+    const timeout = window.setTimeout(() => {
+      setMobileMenuOpen(false);
+      setNotifDropdownOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const isLikelyPhoneNumber = (value: string) => {
+    const compactValue = value.replace(/\s+/g, '');
+    const digitsOnly = compactValue.replace(/\D/g, '');
+
+    return (
+      /^[+\d][\d\s()-]+$/.test(value) &&
+      digitsOnly.length >= 10 &&
+      digitsOnly.length <= 15 &&
+      !/^FY-/i.test(compactValue)
+    );
+  };
+
+  const handleGlobalSearch = async (rawValue: string) => {
+    const value = rawValue.trim();
+
+    if (!value) {
+      return;
+    }
+
+    if (isLikelyPhoneNumber(value)) {
+      try {
+        const customer = await customerService.lookupCustomerByPhoneNumber(value);
+        navigate(`/admin/customers/${customer.id}`);
+        return;
+      } catch (error) {
+        console.error('Customer lookup failed', error);
+        window.alert('No customer found for that phone number.');
+        return;
+      }
+    }
+
+    navigate(`/admin/orders?search=${encodeURIComponent(value)}`);
   };
 
   const navLinks = [
@@ -245,7 +284,7 @@ export const AdminLayout: React.FC = () => {
                 type="text"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    navigate(`/admin/orders?q=${e.currentTarget.value}`);
+                    void handleGlobalSearch(e.currentTarget.value);
                   }
                 }}
               />

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import useOrders from '../../hooks/useOrders';
 import DataTable from '../../components/tables/DataTable';
 import Modal from '../../components/ui/Modal';
@@ -6,11 +7,16 @@ import { Search, Calendar, ArrowRight, Eye, Mail, Phone, ShoppingCart, Download 
 import { Order, OrderStatus } from '../../types';
 import { orderService } from '../../services/order.service';
 
-export const OrdersPage: React.FC = () => {
-  const { orders, loading, refreshing, fetchOrders, changeOrderStatus, pagination, summary } = useOrders();
+const getSearchTermFromQueryString = (search: string) => {
+  const params = new URLSearchParams(search);
+  return params.get('search')?.trim() || params.get('q')?.trim() || '';
+};
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+export const OrdersPage: React.FC = () => {
+  const location = useLocation();
+  const { orders, loading, refreshing, fetchOrders, changeOrderStatus, pagination, summary } = useOrders();
+  const [searchTerm, setSearchTerm] = useState(() => getSearchTermFromQueryString(location.search));
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() => getSearchTermFromQueryString(location.search));
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,6 +24,17 @@ export const OrdersPage: React.FC = () => {
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      const nextSearchTerm = getSearchTermFromQueryString(location.search);
+      setSearchTerm(nextSearchTerm);
+      setDebouncedSearchTerm(nextSearchTerm);
+      setCurrentPage(1);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [location.search]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
