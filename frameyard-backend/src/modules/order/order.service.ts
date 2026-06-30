@@ -1,6 +1,64 @@
 
 import prisma from "../../config/prisma";
 
+type OrderQuery = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  dateFilter?: string;
+};
+
+const buildOrderWhere = (
+  query: OrderQuery = {},
+  userId?: string
+) => {
+  const search = query.search?.trim();
+  const status = query.status;
+  const dateFilter = query.dateFilter;
+  const where: any = {};
+
+  if (userId) {
+    where.userId = userId;
+  }
+
+  if (search) {
+    where.OR = [
+      { orderNumber: { contains: search, mode: "insensitive" } },
+      {
+        user: {
+          name: { contains: search, mode: "insensitive" },
+        },
+      },
+      {
+        user: {
+          email: { contains: search, mode: "insensitive" },
+        },
+      },
+      {
+        phoneNumber: { contains: search, mode: "insensitive" },
+      },
+    ];
+  }
+
+  if (status && status !== "all") {
+    where.orderStatus = status;
+  }
+
+  if (dateFilter && dateFilter !== "all") {
+    const days = Number(dateFilter);
+    if (!Number.isNaN(days) && days > 0) {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      where.createdAt = {
+        gte: since,
+      };
+    }
+  }
+
+  return where;
+};
+
 export const createOrder = async (
   userId: string
 ) => {
@@ -210,12 +268,31 @@ export const getOrderById = async (
   };
 };
 
-export const getAllOrders = async () => {
-  const orders =
-    await prisma.order.findMany({
+export const getAllOrders = async (
+  query: OrderQuery = {}
+) => {
+  return getPaginatedOrders(query);
+};
+
+export const getPaginatedOrders = async (
+  query: OrderQuery = {}
+) => {
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.max(Number(query.limit) || 10, 1);
+  const skip = (page - 1) * limit;
+  const where = buildOrderWhere(query);
+
+  const [total, orders] = await prisma.$transaction([
+    prisma.order.count({
+      where,
+    }),
+    prisma.order.findMany({
+      where,
       orderBy: {
         createdAt: "desc",
       },
+      skip,
+      take: limit,
       include: {
         user: {
           select: {
@@ -226,12 +303,58 @@ export const getAllOrders = async () => {
         },
         orderItems: true,
       },
-    });
+    }),
+  ]);
+
+  const [totalCount, pendingCount, processingCount, deliveredCount, cancelledCount] =
+    await prisma.$transaction([
+      prisma.order.count(),
+      prisma.order.count({ where: { orderStatus: "PENDING" } }),
+      prisma.order.count({ where: { orderStatus: "PROCESSING" } }),
+      prisma.order.count({ where: { orderStatus: "DELIVERED" } }),
+      prisma.order.count({ where: { orderStatus: "CANCELLED" } }),
+    ]);
 
   return {
     success: true,
     orders,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    },
+    summary: {
+      totalCount,
+      pendingCount,
+      processingCount,
+      deliveredCount,
+      cancelledCount,
+    },
   };
+};
+
+export const exportAllOrders = async (
+  query: OrderQuery = {}
+) => {
+  const where = buildOrderWhere(query);
+
+  return prisma.order.findMany({
+    where,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+          phoneNumber: true,
+        },
+      },
+      orderItems: true,
+    },
+  });
 };
 
 export const updateOrderStatus = async (
