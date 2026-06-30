@@ -46,6 +46,30 @@ const normalizeProduct = (product: any): Product => ({
     : [],
 });
 
+export const uploadProductImages = async (
+  files: File[]
+) => {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append(
+      "images",
+      file
+    );
+  });
+  const response =
+    await api.post(
+      "/products/uploadProductImages",
+      formData,
+      {
+        headers: {
+          "Content-Type":
+            "multipart/form-data",
+        },
+      }
+    );
+  return response.data.images;
+};
+
 export const productService = {
   getProducts: async (): Promise<Product[]> => {
     const response = await api.get('/products');

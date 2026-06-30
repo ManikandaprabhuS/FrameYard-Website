@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Parser } from "json2csv";
-import { createProduct, createVariant, deleteVariant, getAllProducts, getProductById, updateProduct, updateVariant, getInventoryForExport } from "./product.service";
+import { createProduct, createVariant, deleteVariant, 
+  getAllProducts, getProductById, updateProduct, updateVariant, getInventoryForExport } from "./product.service";
 
 interface ProductParams {
   productId: string;
@@ -12,6 +13,11 @@ interface ProductIdParams {
 interface VariantParams {
   variantId: string;
 }
+
+import {
+  uploadProductImages,
+} from "./product.storage";
+
 
 export const fetchProducts = async (
   req: Request,
@@ -106,7 +112,6 @@ export const exportInventory = async (
   res: Response
 ) => {
   const products = await getInventoryForExport();
-
   const rows = products.flatMap((product) =>
     product.variants.map((variant) => ({
       ProductName: product.name,
@@ -119,16 +124,37 @@ export const exportInventory = async (
       Active: product.isActive,
     }))
   );
-
   const parser = new Parser();
-
   const csv = parser.parse(rows);
-
   res.header("Content-Type", "text/csv");
-
-  res.attachment(
-    `inventory-${Date.now()}.csv`
-  );
-
+  res.attachment(`inventory-${Date.now()}.csv`);
   return res.send(csv);
 };
+
+
+export const uploadImages = async (
+  req: Request,
+  res: Response
+) => {
+
+  try {
+    const files =req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Files required",
+      });
+
+    }
+    console.log("FILES =", files);
+    console.log("IS ARRAY =", Array.isArray(files));
+    console.log("FILES LENGTH =", files?.length);
+
+    const imageUrls =await uploadProductImages(files);
+    return res.json({success: true, images: imageUrls,});
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message,});
+  }
+};
+export { uploadProductImages };
+

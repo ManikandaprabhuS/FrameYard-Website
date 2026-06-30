@@ -86,13 +86,13 @@ enum GlassType {
   OPTION_2
 }
 model ProductImage {
-  id           String @id @default(uuid())
+  id           String   @id @default(uuid())
   productId    String
   imageUrl     String
-  displayOrder Int @default(1)
+  displayOrder Int      @default(1)
+  createdAt    DateTime @default(now())
   product Product @relation( fields:[productId],references:[id])
 }
-
 model Cart {
   id        String   @id @default(uuid())
   userId    String   @unique

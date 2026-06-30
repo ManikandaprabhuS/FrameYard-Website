@@ -26,7 +26,6 @@ export const ProductDetailsPage: React.FC = () => {
   const { 
     currentProduct, 
     loading, 
-    error, 
     fetchProductById, 
     addProduct, 
     editProduct, 
