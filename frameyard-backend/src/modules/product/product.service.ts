@@ -1,11 +1,66 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../../config/prisma";
+
+type ProductImageInput = {
+  imageUrl: string;
+  displayOrder: number;
+};
+
+type ProductPayload = {
+  name: string;
+  description?: string;
+  material: string;
+  availableColors: string[];
+  isActive?: boolean;
+  images?: ProductImageInput[];
+};
+
+const imageOrderSort = (
+  images: ProductImageInput[] = []
+) =>
+  [...images].sort(
+    (left, right) =>
+      left.displayOrder - right.displayOrder
+  );
+
+const syncProductImages = async (
+  tx: Prisma.TransactionClient,
+  productId: string,
+  images: ProductImageInput[] = []
+) => {
+  await tx.productImage.deleteMany({
+    where: {
+      productId,
+    },
+  });
+
+  if (images.length === 0) {
+    return;
+  }
+
+  await tx.productImage.createMany({
+    data: imageOrderSort(images).map(
+      (image, index) => ({
+        productId,
+        imageUrl: image.imageUrl,
+        displayOrder:
+          image.displayOrder ?? index + 1,
+      })
+    ),
+  });
+};
 
 export const getAllProducts = async () => {
 
   const products =
     await prisma.product.findMany({
       include: {
-        variants: true
+        variants: true,
+        images: {
+          orderBy: {
+            displayOrder: "asc",
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -29,7 +84,11 @@ export const getProductById = async (
       },
       include: {
         variants: true,
-        images: true,
+        images: {
+          orderBy: {
+            displayOrder: "asc",
+          },
+        },
       },
     });
 
@@ -47,16 +106,39 @@ export const getProductById = async (
 };
 
 export const createProduct = async (
-  data: any
+  data: ProductPayload
 ) => {
 
-  const product = await prisma.product.create({
-    data: {
-      name: data.name,
-      description: data.description,
-      material: data.material,
-      availableColors: data.availableColors
-    }
+  const product = await prisma.$transaction(async (tx) => {
+    const createdProduct = await tx.product.create({
+      data: {
+        name: data.name,
+        description: data.description ?? null,
+        material: data.material,
+        availableColors: data.availableColors,
+        isActive: data.isActive ?? true,
+      },
+    });
+
+    await syncProductImages(
+      tx,
+      createdProduct.id,
+      data.images || []
+    );
+
+    return tx.product.findUnique({
+      where: {
+        id: createdProduct.id,
+      },
+      include: {
+        variants: true,
+        images: {
+          orderBy: {
+            displayOrder: "asc",
+          },
+        },
+      },
+    });
   });
 
   return {
@@ -108,7 +190,7 @@ export const createVariant = async (
 
 export const updateProduct = async (
   productId: string,
-  data: any
+  data: ProductPayload
 ) => {
 
   const existingProduct =
@@ -125,23 +207,40 @@ export const updateProduct = async (
     };
   }
 
-  const product =
-    await prisma.product.update({
+  const product = await prisma.$transaction(async (tx) => {
+    const updatedProduct = await tx.product.update({
       where: {
         id: productId,
       },
       data: {
         name: data.name,
-        description: data.description,
+        description: data.description ?? null,
         material: data.material,
         availableColors: data.availableColors,
-        isActive: data.isActive,
+        isActive: data.isActive ?? existingProduct.isActive,
+      },
+    });
+
+    await syncProductImages(
+      tx,
+      updatedProduct.id,
+      data.images || []
+    );
+
+    return tx.product.findUnique({
+      where: {
+        id: updatedProduct.id,
       },
       include: {
         variants: true,
-        images: true,
+        images: {
+          orderBy: {
+            displayOrder: "asc",
+          },
+        },
       },
     });
+  });
 
   return {
     success: true,

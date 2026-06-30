@@ -139,6 +139,8 @@ export const uploadImages = async (
 
   try {
     const files =req.files as Express.Multer.File[];
+    console.log("REQ FILE =", req.file);
+console.log("REQ FILES =", req.files);
     if (!files || files.length === 0) {
       return res.status(400).json({
         success: false,

@@ -1,38 +1,55 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 import { ArrowLeft, Plus, Edit2, Trash2, Image as ImageIcon, Upload, Info } from 'lucide-react';
-import { ProductStatus } from '../../types';
+import { ProductImage, ProductStatus } from '../../types';
+import { uploadProductImages } from '../../services/product.service';
 
 type VariantForm = {
   id: string;
   productId?: string;
   frameSize: string;
   mountType: string;
-  glassType: string
+  glassType: string;
   price: number;
   offerPrice?: number | null;
   stockQuantity: number;
   priceValidUntil?: string | null;
 };
 
+type ProductImageDraft = ProductImage & {
+  previewUrl?: string;
+  isUploading?: boolean;
+};
+
+const MAX_IMAGES = 10;
+
+const isVideoUrl = (url: string) => /\.mp4(\?|$)/i.test(url);
+
+const normalizeImageOrder = (items: ProductImageDraft[]) =>
+  items.map((item, index) => ({
+    ...item,
+    displayOrder: index + 1,
+  }));
+
 export const ProductDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const { 
-    currentProduct, 
-    loading, 
-    fetchProductById, 
-    addProduct, 
-    editProduct, 
+  const {
+    currentProduct,
+    loading,
+    fetchProductById,
+    addProduct,
+    editProduct,
     addVariant,
     editVariant,
     removeVariant,
-    clearCurrentProduct 
+    clearCurrentProduct,
   } = useProducts();
 
   // Form State
@@ -43,29 +60,39 @@ export const ProductDetailsPage: React.FC = () => {
   const [colors, setColors] = useState<string[]>([]);
   const [status, setStatus] = useState<ProductStatus>('active');
   const [variants, setVariants] = useState<VariantForm[]>([]);
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<ProductImageDraft[]>([]);
+
+  // Upload State
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Variant Modal State
   const [variantModalOpen, setVariantModalOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<VariantForm | null>(null);
   const [varSize, setVarSize] = useState('');
   const [varMountType, setVarMountType] = useState('NONE');
-const [varGlassType, setVarGlassType] = useState('NONE');
+  const [varGlassType, setVarGlassType] = useState('NONE');
   const [varPrice, setVarPrice] = useState('');
   const [varOfferPrice, setVarOfferPrice] = useState('');
   const [varStock, setVarStock] = useState('');
 
-  // Image Input Modal State
-  const [imageModalOpen, setImageModalOpen] = useState(false);
-  const [newImageUrl, setNewImageUrl] = useState('');
+  const mapCurrentProductImages = (productImages: ProductImage[] = []) =>
+    normalizeImageOrder(
+      productImages.map((image) => ({
+        ...image,
+        previewUrl: image.imageUrl,
+      }))
+    );
 
-  // Load product if editing
   useEffect(() => {
     if (!isNew && id) {
       fetchProductById(id);
-    } else {
-      clearCurrentProduct();
-      // Initialize with empty/default fields for new product
+      return;
+    }
+
+    clearCurrentProduct();
+    const resetTimer = window.setTimeout(() => {
       setName('');
       setDescription('');
       setBrand('');
@@ -73,27 +100,147 @@ const [varGlassType, setVarGlassType] = useState('NONE');
       setColors(['#0f172a', '#fef3c7', '#ffffff']);
       setStatus('active');
       setVariants([]);
-      setImages(['https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=400']);
-    }
+      setImages([]);
+      setImageError(null);
+    }, 0);
+
+    return () => window.clearTimeout(resetTimer);
   }, [id, isNew, fetchProductById, clearCurrentProduct]);
 
-  // Set form state when product loads
   useEffect(() => {
     if (!isNew && currentProduct) {
-      setName(currentProduct.name);
-      setDescription(currentProduct.description || '');
-      setBrand(currentProduct.brandName);
-      setMaterial(currentProduct.material);
-      setColors(currentProduct.availableColors || []);
-      setStatus(currentProduct.isActive ? 'active' : 'draft');
-      setVariants(currentProduct.variants);
-      setImages((currentProduct.images || []).map((image) => image.imageUrl));
+      const applyTimer = window.setTimeout(() => {
+        setName(currentProduct.name);
+        setDescription(currentProduct.description || '');
+        setBrand(currentProduct.brandName);
+        setMaterial(currentProduct.material);
+        setColors(currentProduct.availableColors || []);
+        setStatus(currentProduct.isActive ? 'active' : 'draft');
+        setVariants(currentProduct.variants);
+        setImages(mapCurrentProductImages(currentProduct.images || []));
+      }, 0);
+
+      return () => window.clearTimeout(applyTimer);
     }
   }, [currentProduct, isNew]);
 
+  const handleImageSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = '';
+
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    if (isUploadingImages) {
+      setImageError('Please wait for the current upload to finish.');
+      return;
+    }
+
+    const remainingSlots = MAX_IMAGES - images.length;
+    if (remainingSlots <= 0) {
+      setImageError(`You can upload up to ${MAX_IMAGES} images.`);
+      return;
+    }
+
+    const filesToUpload = selectedFiles.slice(0, remainingSlots);
+    if (selectedFiles.length > remainingSlots) {
+      setImageError(`Only ${remainingSlots} more image(s) can be added.`);
+    } else {
+      setImageError(null);
+    }
+
+    const tempEntries: ProductImageDraft[] = filesToUpload.map((file, index) => {
+      const previewUrl = URL.createObjectURL(file);
+      return {
+        id: `temp-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+        productId: id || '',
+        imageUrl: previewUrl,
+        displayOrder: images.length + index + 1,
+        previewUrl,
+        isUploading: true,
+      };
+    });
+
+    setImages((prev) => normalizeImageOrder([...prev, ...tempEntries]));
+    setIsUploadingImages(true);
+
+    try {
+      await Promise.all(
+        tempEntries.map(async (entry, index) => {
+          try {
+            const uploadedUrls = await uploadProductImages([filesToUpload[index]]);
+            const finalUrl = uploadedUrls[0];
+
+            if (!finalUrl) {
+              throw new Error('Upload completed without returning an image URL.');
+            }
+
+            setImages((prev) =>
+              normalizeImageOrder(
+                prev.map((image) =>
+                  image.id === entry.id
+                    ? {
+                        ...image,
+                        imageUrl: finalUrl,
+                        previewUrl: finalUrl,
+                        isUploading: false,
+                      }
+                    : image
+                )
+              )
+            );
+
+            if (entry.previewUrl?.startsWith('blob:')) {
+              URL.revokeObjectURL(entry.previewUrl);
+            }
+          } catch (error: unknown) {
+            setImages((prev) =>
+              normalizeImageOrder(prev.filter((image) => image.id !== entry.id))
+            );
+            const uploadError = error as {
+              response?: { data?: { message?: string } };
+              message?: string;
+            };
+            setImageError(
+              uploadError?.response?.data?.message ||
+                uploadError?.message ||
+                'Failed to upload images.'
+            );
+          }
+        })
+      );
+    } catch (error: unknown) {
+      const uploadError = error as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      setImageError(
+        uploadError?.response?.data?.message ||
+          uploadError?.message ||
+          'Failed to upload images.'
+      );
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
+  const handleRemoveImage = (imageId: string) => {
+    setImages((prev) => {
+      const target = prev.find((item) => item.id === imageId);
+      if (target?.previewUrl && target.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+
+      return normalizeImageOrder(prev.filter((item) => item.id !== imageId));
+    });
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !material) return;
+    if (!name || !material || isUploadingImages || isSaving) return;
+
+    setIsSaving(true);
 
     const payload = {
       name,
@@ -101,6 +248,10 @@ const [varGlassType, setVarGlassType] = useState('NONE');
       material,
       availableColors: colors,
       isActive: status === 'active',
+      images: images.map((image, index) => ({
+        imageUrl: image.imageUrl,
+        displayOrder: index + 1,
+      })),
     };
 
     let success = false;
@@ -124,21 +275,21 @@ const [varGlassType, setVarGlassType] = useState('NONE');
       success = await editProduct(id, payload);
     }
 
+    setIsSaving(false);
+
     if (success) {
       navigate('/admin/products');
     }
   };
 
-  // Color Swatch handler
   const togglePresetColor = (colorCode: string) => {
     if (colors.includes(colorCode)) {
-      setColors(colors.filter(c => c !== colorCode));
+      setColors(colors.filter((color) => color !== colorCode));
     } else {
       setColors([...colors, colorCode]);
     }
   };
 
-  // Variant adding/editing
   const openAddVariant = () => {
     setEditingVariant(null);
     setVarSize('');
@@ -165,14 +316,14 @@ const [varGlassType, setVarGlassType] = useState('NONE');
     if (!varSize || !varPrice || !varStock) return;
 
     const newVariant: VariantForm = {
-      id: editingVariant?.id || 'v-' + Math.random().toString(36).substr(2, 5),
+      id: editingVariant?.id || `v-${Math.random().toString(36).slice(2, 7)}`,
       productId: editingVariant?.productId || id,
       frameSize: varSize,
       mountType: varMountType,
       glassType: varGlassType,
       price: parseFloat(varPrice),
       offerPrice: varOfferPrice ? parseFloat(varOfferPrice) : null,
-      stockQuantity: parseInt(varStock),
+      stockQuantity: parseInt(varStock, 10),
       priceValidUntil: editingVariant?.priceValidUntil || null,
     };
 
@@ -197,7 +348,7 @@ const [varGlassType, setVarGlassType] = useState('NONE');
     }
 
     if (editingVariant) {
-      setVariants(variants.map(v => v.id === editingVariant.id ? newVariant : v));
+      setVariants(variants.map((variant) => (variant.id === editingVariant.id ? newVariant : variant)));
     } else {
       setVariants([...variants, newVariant]);
     }
@@ -212,20 +363,7 @@ const [varGlassType, setVarGlassType] = useState('NONE');
       }
       return;
     }
-    setVariants(variants.filter(v => v.id !== variantId));
-  };
-
-  // Add simulated image URL
-  const handleAddImage = () => {
-    if (newImageUrl.startsWith('http')) {
-      setImages([...images, newImageUrl]);
-      setNewImageUrl('');
-      setImageModalOpen(false);
-    }
-  };
-
-  const handleDeleteImage = (index: number) => {
-    setImages(images.filter((_, idx) => idx !== index));
+    setVariants(variants.filter((variant) => variant.id !== variantId));
   };
 
   if (loading && !isNew) {
@@ -248,11 +386,9 @@ const [varGlassType, setVarGlassType] = useState('NONE');
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
-      
-      {/* Top Header Controls */}
       <div className="flex items-center justify-between border-b border-outline-variant/60 pb-5">
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => navigate('/admin/products')}
             className="p-2 border border-outline-variant rounded-xl hover:bg-surface-container-low transition-colors"
           >
@@ -270,30 +406,26 @@ const [varGlassType, setVarGlassType] = useState('NONE');
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             type="button"
             onClick={() => navigate('/admin/products')}
             className="px-5 py-2 border border-outline-variant rounded-xl text-sm font-semibold hover:bg-surface-container-low transition-colors h-10"
           >
             Discard
           </button>
-          <button 
+          <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:bg-primary/95 transition-all shadow-sm h-10 hover:scale-[1.01]"
+            disabled={isUploadingImages || isSaving}
+            className="px-5 py-2 bg-primary text-on-primary rounded-xl text-sm font-semibold hover:bg-primary/95 transition-all shadow-sm h-10 hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Save Product
+            {isSaving ? 'Saving...' : 'Save Product'}
           </button>
         </div>
       </div>
 
-      {/* Main Grid Forms */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: Info & Pricing */}
         <div className="lg:col-span-8 space-y-6">
-          
-          {/* Card 1: General Info */}
           <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-outline-variant/50">
               <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">General Information</h3>
@@ -302,13 +434,13 @@ const [varGlassType, setVarGlassType] = useState('NONE');
               </Badge>
             </div>
 
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-5" onSubmit={(e) => e.preventDefault()}>
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-5" onSubmit={(event) => event.preventDefault()}>
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Product Name</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
                   className="w-full border border-outline-variant rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                   placeholder="e.g. Nordic Oak Gallery"
                   required
@@ -317,9 +449,9 @@ const [varGlassType, setVarGlassType] = useState('NONE');
 
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Description</label>
-                <textarea 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)}
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
                   className="w-full border border-outline-variant rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                   rows={4}
                   placeholder="Describe the materials, craftsmanship, and aesthetics..."
@@ -329,10 +461,10 @@ const [varGlassType, setVarGlassType] = useState('NONE');
 
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Brand Name</label>
-                <input 
-                  type="text" 
-                  value={brand} 
-                  onChange={(e) => setBrand(e.target.value)}
+                <input
+                  type="text"
+                  value={brand}
+                  onChange={(event) => setBrand(event.target.value)}
                   className="w-full border border-outline-variant rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all"
                   placeholder="e.g. FrameYard Studio"
                   required
@@ -341,9 +473,9 @@ const [varGlassType, setVarGlassType] = useState('NONE');
 
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Material</label>
-                <select 
-                  value={material} 
-                  onChange={(e) => setMaterial(e.target.value)}
+                <select
+                  value={material}
+                  onChange={(event) => setMaterial(event.target.value)}
                   className="w-full border border-outline-variant rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all cursor-pointer"
                 >
                   <option>Solid Oak</option>
@@ -354,7 +486,6 @@ const [varGlassType, setVarGlassType] = useState('NONE');
                 </select>
               </div>
 
-              {/* Preset Colors */}
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Available Colors</label>
                 <div className="flex flex-wrap items-center gap-2 py-1">
@@ -376,27 +507,26 @@ const [varGlassType, setVarGlassType] = useState('NONE');
                 </div>
               </div>
 
-              {/* Status Radio options */}
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Publishing Status</label>
                 <div className="flex items-center gap-6 py-2">
                   <label className="flex items-center gap-2 cursor-pointer text-sm text-on-surface">
-                    <input 
-                      type="radio" 
+                    <input
+                      type="radio"
                       name="status"
                       checked={status === 'active'}
                       onChange={() => setStatus('active')}
-                      className="text-primary focus:ring-primary/10 w-4 h-4" 
+                      className="text-primary focus:ring-primary/10 w-4 h-4"
                     />
                     <span>Published</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer text-sm text-on-surface">
-                    <input 
-                      type="radio" 
+                    <input
+                      type="radio"
                       name="status"
                       checked={status === 'draft'}
                       onChange={() => setStatus('draft')}
-                      className="text-primary focus:ring-primary/10 w-4 h-4" 
+                      className="text-primary focus:ring-primary/10 w-4 h-4"
                     />
                     <span>Draft</span>
                   </label>
@@ -405,11 +535,10 @@ const [varGlassType, setVarGlassType] = useState('NONE');
             </form>
           </section>
 
-          {/* Card 2: Pricing & Variants Table */}
           <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-outline-variant/50 bg-surface-container-lowest">
               <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">Pricing &amp; Variants</h3>
-              <button 
+              <button
                 type="button"
                 onClick={openAddVariant}
                 className="flex items-center gap-1 bg-secondary text-on-secondary px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-secondary/95 transition-all shadow-sm"
@@ -418,7 +547,7 @@ const [varGlassType, setVarGlassType] = useState('NONE');
                 <span>Add Variant</span>
               </button>
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-surface border-b border-outline-variant">
@@ -438,37 +567,37 @@ const [varGlassType, setVarGlassType] = useState('NONE');
                       </td>
                     </tr>
                   ) : (
-                    variants.map((v) => (
-                      <tr key={v.id} className="hover:bg-surface transition-colors">
-                        <td className="px-6 py-4 font-semibold text-on-surface">{v.frameSize}</td>
+                    variants.map((variant) => (
+                      <tr key={variant.id} className="hover:bg-surface transition-colors">
+                        <td className="px-6 py-4 font-semibold text-on-surface">{variant.frameSize}</td>
                         <td className="px-6 py-4 text-on-surface-variant">
-                            {v.mountType} / {v.glassType}
+                          {variant.mountType} / {variant.glassType}
                         </td>
                         <td className="px-6 py-4 font-semibold">
                           <div className="flex flex-col">
-                            <span>${v.price.toFixed(2)}</span>
-                            {v.offerPrice && (
-                              <span className="text-xs text-error font-medium">${v.offerPrice.toFixed(2)} Offer</span>
+                            <span>${variant.price.toFixed(2)}</span>
+                            {variant.offerPrice && (
+                              <span className="text-xs text-error font-medium">${variant.offerPrice.toFixed(2)} Offer</span>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4 font-medium">
-                          <span className={v.stockQuantity <= 5 ? 'text-error font-bold' : 'text-on-surface'}>
-                            {v.stockQuantity} units
+                          <span className={variant.stockQuantity <= 5 ? 'text-error font-bold' : 'text-on-surface'}>
+                            {variant.stockQuantity} units
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
-                              onClick={() => openEditVariant(v)}
+                              onClick={() => openEditVariant(variant)}
                               className="p-1 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded transition-colors"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteVariant(v.id)}
+                              onClick={() => handleDeleteVariant(variant.id)}
                               className="p-1 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -482,45 +611,90 @@ const [varGlassType, setVarGlassType] = useState('NONE');
               </table>
             </div>
           </section>
-
         </div>
 
-        {/* Right Column: Images */}
-        <div className="lg:col-span-4">
-          <section className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl shadow-sm space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">Product Images</h3>
-              <button 
+        <div className="lg:col-span-4 space-y-6">
+          <section className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl shadow-sm space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">Product Images</h3>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Upload up to {MAX_IMAGES} files. JPG, JPEG, PNG, WEBP, and MP4 are supported.
+                </p>
+              </div>
+              <button
                 type="button"
-                onClick={() => setImageModalOpen(true)}
-                className="text-xs text-primary font-semibold hover:underline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingImages || images.length >= MAX_IMAGES}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-outline-variant text-xs font-semibold hover:bg-surface-container-low transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Upload Images
+                <Upload className="w-3.5 h-3.5" />
+                <span>{isUploadingImages ? 'Uploading...' : 'Add Images'}</span>
               </button>
             </div>
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,video/mp4,.jpg,.jpeg,.png,.webp,.mp4"
+              multiple
+              className="hidden"
+              onChange={handleImageSelection}
+            />
+
+            {imageError && (
+              <div className="rounded-lg border border-error/20 bg-error-container/20 px-3 py-2 text-xs text-error">
+                {imageError}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
-              {/* Primary Image Preview */}
               {images.length > 0 ? (
-                <div className="col-span-2 relative group aspect-square rounded-lg overflow-hidden bg-surface-container inner-stroke cursor-pointer">
-                  <img 
-                    src={images[0]} 
-                    alt="Cover preview" 
-                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <button 
-                      type="button"
-                      onClick={() => handleDeleteImage(0)}
-                      className="p-2 bg-white rounded-full text-error hover:bg-error hover:text-white transition-all shadow"
+                images.map((image, index) => (
+                  <div key={image.id} className={index === 0 ? 'col-span-2' : ''}>
+                    <div
+                      className={`relative group overflow-hidden rounded-lg bg-surface-container inner-stroke ${
+                        index === 0 ? 'aspect-[4/3]' : 'aspect-square'
+                      }`}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      {isVideoUrl(image.imageUrl) ? (
+                        <video
+                          src={image.imageUrl}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                          playsInline
+                          controls
+                        />
+                      ) : (
+                        <img
+                          src={image.imageUrl}
+                          alt={`Product visual ${index + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                        />
+                      )}
+
+                      {image.isUploading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                          <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+
+                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-primary text-on-primary text-[9px] font-bold uppercase rounded tracking-wider shadow">
+                        {index === 0 ? 'Primary Cover' : `Image ${index + 1}`}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(image.id)}
+                        disabled={isUploadingImages || image.isUploading}
+                        className="absolute top-2 right-2 p-1.5 bg-white rounded-full text-error hover:bg-error hover:text-white transition-all shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 bg-primary text-on-primary text-[9px] font-bold uppercase rounded tracking-wider shadow">
-                    Primary Cover
-                  </div>
-                </div>
+                ))
               ) : (
                 <div className="col-span-2 aspect-square border-2 border-dashed border-outline-variant rounded-lg flex flex-col items-center justify-center bg-surface-container">
                   <ImageIcon className="w-8 h-8 text-outline-variant/80 mb-2" />
@@ -528,61 +702,51 @@ const [varGlassType, setVarGlassType] = useState('NONE');
                 </div>
               )}
 
-              {/* Thumbnails grid */}
-              {images.slice(1).map((url, idx) => (
-                <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden bg-surface-container inner-stroke">
-                  <img src={url} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button 
-                      type="button"
-                      onClick={() => handleDeleteImage(idx + 1)}
-                      className="p-1.5 bg-white rounded-full text-error hover:bg-error hover:text-white transition-all shadow"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Upload Placeholder */}
-              <button 
-                type="button"
-                onClick={() => setImageModalOpen(true)}
-                className="aspect-square border-2 border-dashed border-outline-variant rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-surface-container transition-all group"
-              >
-                <Upload className="w-5 h-5 text-outline-variant group-hover:text-primary transition-colors" />
-                <span className="text-[10px] font-semibold text-outline-variant group-hover:text-primary transition-colors">Add Image</span>
-              </button>
+              {images.length < MAX_IMAGES && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingImages}
+                  className="aspect-square border-2 border-dashed border-outline-variant rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-surface-container transition-all group disabled:opacity-60"
+                >
+                  <Upload className="w-5 h-5 text-outline-variant group-hover:text-primary transition-colors" />
+                  <span className="text-[10px] font-semibold text-outline-variant group-hover:text-primary transition-colors">
+                    Add Image
+                  </span>
+                </button>
+              )}
             </div>
 
             <div className="p-4 bg-surface-container rounded-lg flex items-start gap-3">
               <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
               <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                Add high-resolution image URLs. The first image in the grid is automatically utilized as the primary catalog cover.
+                The first uploaded asset becomes the primary cover. You can remove or add images before saving, and the order is preserved in the saved product record.
               </p>
             </div>
+
+            {isUploadingImages && (
+              <div className="text-xs text-primary font-medium">
+                Upload in progress. Saving is disabled until the selected files finish uploading.
+              </div>
+            )}
           </section>
         </div>
-
       </div>
 
-      {/* ------------------------------------------------------------- */}
-      {/* ADD/EDIT VARIANT SUBMODAL */}
-      {/* ------------------------------------------------------------- */}
-      <Modal 
-        isOpen={variantModalOpen} 
+      <Modal
+        isOpen={variantModalOpen}
         onClose={() => setVariantModalOpen(false)}
         title={editingVariant ? 'Edit Sizing Variant' : 'Create Custom Variant'}
         footer={
           <>
-            <button 
+            <button
               type="button"
               onClick={() => setVariantModalOpen(false)}
               className="px-4 py-2 border border-outline-variant rounded-lg text-xs font-semibold hover:bg-surface"
             >
               Cancel
             </button>
-            <button 
+            <button
               type="button"
               onClick={handleSaveVariant}
               className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:bg-primary/95"
@@ -595,48 +759,46 @@ const [varGlassType, setVarGlassType] = useState('NONE');
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Frame Size (e.g. 11" x 14", A3)</label>
-            <input 
-              type="text" 
-              value={varSize} 
-              onChange={(e) => setVarSize(e.target.value)}
+            <input
+              type="text"
+              value={varSize}
+              onChange={(event) => setVarSize(event.target.value)}
               className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
               placeholder='e.g. 8" x 10"'
               required
             />
           </div>
           <div>
-  <label className="block text-xs font-semibold mb-2"> MOUNT TYPE </label>
-  <select
-    value={varMountType}
-    onChange={(e) => setVarMountType(e.target.value)}
-    className="w-full border rounded-lg px-3 py-2"
-  >
-    <option value="NONE">NONE</option>
-    <option value="OPTION_1">OPTION 1</option>
-    <option value="OPTION_2">OPTION 2</option>
-  </select>
-</div>
-<div>
-  <label className="block text-xs font-semibold mb-2">
-    GLASS TYPE
-  </label>
+            <label className="block text-xs font-semibold mb-2"> MOUNT TYPE </label>
+            <select
+              value={varMountType}
+              onChange={(event) => setVarMountType(event.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
+            >
+              <option value="NONE">NONE</option>
+              <option value="OPTION_1">OPTION 1</option>
+              <option value="OPTION_2">OPTION 2</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-2">GLASS TYPE</label>
 
-  <select
-    value={varGlassType}
-    onChange={(e) => setVarGlassType(e.target.value)}
-    className="w-full border rounded-lg px-3 py-2"
-  >
-    <option value="NONE">NONE</option>
-    <option value="OPTION_1">OPTION 1</option>
-    <option value="OPTION_2">OPTION 2</option>
-  </select>
-</div>
+            <select
+              value={varGlassType}
+              onChange={(event) => setVarGlassType(event.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
+            >
+              <option value="NONE">NONE</option>
+              <option value="OPTION_1">OPTION 1</option>
+              <option value="OPTION_2">OPTION 2</option>
+            </select>
+          </div>
           <div>
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Price ($)</label>
-            <input 
-              type="number" 
-              value={varPrice} 
-              onChange={(e) => setVarPrice(e.target.value)}
+            <input
+              type="number"
+              value={varPrice}
+              onChange={(event) => setVarPrice(event.target.value)}
               className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
               placeholder="e.g. 45.00"
               required
@@ -644,20 +806,20 @@ const [varGlassType, setVarGlassType] = useState('NONE');
           </div>
           <div>
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Offer Price ($ - Optional)</label>
-            <input 
-              type="number" 
-              value={varOfferPrice} 
-              onChange={(e) => setVarOfferPrice(e.target.value)}
+            <input
+              type="number"
+              value={varOfferPrice}
+              onChange={(event) => setVarOfferPrice(event.target.value)}
               className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
               placeholder="e.g. 39.00"
             />
           </div>
           <div className="col-span-2">
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Stock Inventory (Units)</label>
-            <input 
-              type="number" 
-              value={varStock} 
-              onChange={(e) => setVarStock(e.target.value)}
+            <input
+              type="number"
+              value={varStock}
+              onChange={(event) => setVarStock(event.target.value)}
               className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
               placeholder="e.g. 100"
               required
@@ -665,51 +827,6 @@ const [varGlassType, setVarGlassType] = useState('NONE');
           </div>
         </div>
       </Modal>
-
-      {/* ------------------------------------------------------------- */}
-      {/* IMAGE URL UPLOADER SUBMODAL */}
-      {/* ------------------------------------------------------------- */}
-      <Modal 
-        isOpen={imageModalOpen} 
-        onClose={() => setImageModalOpen(false)}
-        title="Add Product Image URL"
-        footer={
-          <>
-            <button 
-              type="button"
-              onClick={() => setImageModalOpen(false)}
-              className="px-4 py-2 border border-outline-variant rounded-lg text-xs font-semibold hover:bg-surface"
-            >
-              Cancel
-            </button>
-            <button 
-              type="button"
-              onClick={handleAddImage}
-              className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:bg-primary/95"
-            >
-              Add Image
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Image Source URL</label>
-            <input 
-              type="url" 
-              value={newImageUrl} 
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:ring-1 focus:ring-primary outline-none"
-              placeholder="https://images.unsplash.com/photo-..."
-              required
-            />
-          </div>
-          <p className="text-xs text-on-surface-variant/80">
-            Paste any web image URL (Unsplash, Imgur, etc.) to simulate uploading frames into the layout gallery.
-          </p>
-        </div>
-      </Modal>
-
     </div>
   );
 };

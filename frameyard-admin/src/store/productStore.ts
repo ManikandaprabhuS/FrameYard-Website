@@ -17,7 +17,7 @@ interface ProductState {
   clearCurrentProduct: () => void;
 }
 
-export const useProductStore = create<ProductState>((set, get) => ({
+export const useProductStore = create<ProductState>((set) => ({
   products: [],
   currentProduct: null,
   loading: false,
@@ -67,10 +67,18 @@ export const useProductStore = create<ProductState>((set, get) => ({
         // if variants come back empty/missing, keep the existing ones.
         const existingProduct = state.products.find((p) => p.id === id);
         const mergedVariants =
-          updatedProd.variants && updatedProd.variants.length > 0
+          updatedProd.variants !== undefined
             ? updatedProd.variants
             : existingProduct?.variants || [];
-        const merged = { ...updatedProd, variants: mergedVariants };
+        const mergedImages =
+          updatedProd.images !== undefined
+            ? updatedProd.images
+            : existingProduct?.images || [];
+        const merged = {
+          ...updatedProd,
+          variants: mergedVariants,
+          images: mergedImages,
+        };
         return {
           products: state.products.map((p) => (p.id === id ? merged : p)),
           currentProduct:

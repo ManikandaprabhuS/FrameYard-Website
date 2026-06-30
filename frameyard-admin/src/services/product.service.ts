@@ -1,5 +1,10 @@
 import api from './api';
-import { Product, ProductVariant } from '../types';
+import { Product, ProductImage, ProductVariant } from '../types';
+
+export type ProductImagePayload = {
+  imageUrl: string;
+  displayOrder: number;
+};
 
 export type ProductPayload = {
   name: string;
@@ -7,6 +12,7 @@ export type ProductPayload = {
   material: string;
   availableColors: string[];
   isActive?: boolean;
+  images?: ProductImagePayload[];
 };
 
 export type VariantPayload = {
@@ -19,28 +25,52 @@ export type VariantPayload = {
   priceValidUntil?: string | null;
 };
 
-const normalizeVariant = (variant: any): ProductVariant => ({
-  ...variant,
+type ProductVariantApi = {
+  price: number | string;
+  offerPrice?: number | string | null;
+  stockQuantity: number | string;
+  createdAt?: string;
+  priceValidUntil?: string | null;
+  [key: string]: unknown;
+};
+
+type ProductApi = {
+  variants?: ProductVariantApi[];
+  images?: Array<{
+    id: string;
+    productId: string;
+    imageUrl: string;
+    displayOrder: number | string;
+  }>;
+  [key: string]: unknown;
+};
+
+const normalizeVariant = (variant: ProductVariantApi): ProductVariant => ({
+  ...(variant as unknown as ProductVariant),
   price: Number(variant.price),
   offerPrice:
     variant.offerPrice === null || variant.offerPrice === undefined
       ? null
       : Number(variant.offerPrice),
   stockQuantity: Number(variant.stockQuantity),
-  createdAt: variant.createdAt ? new Date(variant.createdAt).toISOString() : new Date().toISOString(),
+  createdAt: variant.createdAt
+    ? new Date(variant.createdAt).toISOString()
+    : new Date().toISOString(),
   priceValidUntil: variant.priceValidUntil
     ? new Date(variant.priceValidUntil).toISOString()
     : null,
 });
 
-const normalizeProduct = (product: any): Product => ({
-  ...product,
+const normalizeProduct = (product: ProductApi): Product => ({
+  ...(product as unknown as Product),
   variants: Array.isArray(product.variants)
     ? product.variants.map(normalizeVariant)
     : [],
   images: Array.isArray(product.images)
-    ? product.images.map((image: any) => ({
-      ...image,
+    ? product.images.map((image): ProductImage => ({
+      id: image.id,
+      productId: image.productId,
+      imageUrl: image.imageUrl,
       displayOrder: Number(image.displayOrder),
     }))
     : [],
@@ -56,17 +86,7 @@ export const uploadProductImages = async (
       file
     );
   });
-  const response =
-    await api.post(
-      "/products/uploadProductImages",
-      formData,
-      {
-        headers: {
-          "Content-Type":
-            "multipart/form-data",
-        },
-      }
-    );
+  const response =await api.post("/products/uploadProductImages", formData,);
   return response.data.images;
 };
 
