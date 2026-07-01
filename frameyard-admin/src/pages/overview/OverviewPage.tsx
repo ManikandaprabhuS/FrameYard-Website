@@ -155,7 +155,7 @@ export const OverviewPage: React.FC = () => {
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis dataKey="day" tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: '#6b7280' }} />
-                <YAxis tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: '#6b7280' }} tickFormatter={(v) => `$${v}`} />
+                <YAxis tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: '#6b7280' }} tickFormatter={(v) => `₹${v}`} />
                 <Tooltip 
                   contentStyle={{ background: '#fff', border: '1px solid #c3c6d7', borderRadius: '8px', fontSize: '12px' }}
                   formatter={(value) => [`₹${value}`, 'Revenue']}
@@ -236,7 +236,7 @@ export const OverviewPage: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-outline-variant bg-surface text-secondary text-xs font-semibold">
-                  <th className="p-4 uppercase tracking-wider">Order ID</th>
+                  <th className="p-4 uppercase tracking-wider">Order Number</th>
                   <th className="p-4 uppercase tracking-wider">Customer</th>
                   <th className="p-4 uppercase tracking-wider">Address</th>
                   <th className="p-4 uppercase tracking-wider text-right">Amount</th>
@@ -246,7 +246,7 @@ export const OverviewPage: React.FC = () => {
               <tbody className="text-xs divide-y divide-outline-variant/30 text-on-surface">
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-surface transition-colors">
-                    <td className="p-4 font-semibold text-primary">{order.id}</td>
+                    <td className="p-4 font-semibold text-primary">{order.orderNumber}</td>
                     <td className="p-4 text-on-surface-variant">{order.user?.name || 'Unknown Customer'}</td>
                     <td className="p-4 font-semibold text-primary">{order.addressLine}</td>
                     <td className="p-4 text-right font-semibold">₹{Number(order.totalAmount).toFixed(2)}</td>

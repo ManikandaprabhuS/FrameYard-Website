@@ -575,9 +575,9 @@ export const ProductDetailsPage: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 font-semibold">
                           <div className="flex flex-col">
-                            <span>${variant.price.toFixed(2)}</span>
+                            <span>₹{variant.price.toFixed(2)}</span>
                             {variant.offerPrice && (
-                              <span className="text-xs text-error font-medium">${variant.offerPrice.toFixed(2)} Offer</span>
+                              <span className="text-xs text-error font-medium">₹{variant.offerPrice.toFixed(2)} Offer</span>
                             )}
                           </div>
                         </td>
@@ -794,7 +794,7 @@ export const ProductDetailsPage: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Price ($)</label>
+            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Price (₹)</label>
             <input
               type="number"
               value={varPrice}
@@ -805,7 +805,7 @@ export const ProductDetailsPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Offer Price ($ - Optional)</label>
+            <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Offer Price (₹ - Optional)</label>
             <input
               type="number"
               value={varOfferPrice}
