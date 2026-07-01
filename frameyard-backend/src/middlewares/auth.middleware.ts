@@ -6,22 +6,23 @@ export interface AuthRequest extends Request {
   user?: User;
 }
 
-export const authenticateUser = async (
+  export const authenticateUser = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers.authorization;
+  const token =
+  req.cookies
+    ?.fy_access_token;
 
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      message: "Access token missing",
+if (!token) {
+  return res.status(401)
+    .json({
+      success:false,
+      message:
+      "Access token missing",
     });
-  }
-
-  const token = authHeader.replace("Bearer ", "");
-
+}
   const {
     data: { user },
     error,

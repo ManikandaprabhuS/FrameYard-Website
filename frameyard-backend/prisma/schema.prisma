@@ -153,3 +153,14 @@ model OrderItem {
 
   order Order @relation(fields: [orderId], references: [id])
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  date      DateTime @default(now())
+
+  @@map("notifications")
+}

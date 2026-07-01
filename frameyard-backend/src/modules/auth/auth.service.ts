@@ -41,6 +41,18 @@ if (existingUser) {
     },
   });
 
+  try {
+    await prisma.notification.create({
+      data: {
+        title: "New User Registration",
+        message: `${user.name} registered on ${new Date(user.createdAt).toLocaleDateString()} with email verification.`,
+        type: "info",
+      },
+    });
+  } catch (err) {
+    console.error("Failed to create registration notification:", err);
+  }
+
   return {
     success: true,
     message: "Registration successful",
@@ -93,6 +105,18 @@ if (authUser.email_confirmed_at && !user.isEmailVerified) {
     },
   });
   console.log("After Update:", updatedUser.isEmailVerified);
+
+  try {
+    await prisma.notification.create({
+      data: {
+        title: "New Verified User Registration",
+        message: `${updatedUser.name} registered on ${new Date(updatedUser.createdAt).toLocaleDateString()} has verified their email.`,
+        type: "success",
+      },
+    });
+  } catch (err) {
+    console.error("Failed to create email verification notification:", err);
+  }
 }
   return {
     success: true,

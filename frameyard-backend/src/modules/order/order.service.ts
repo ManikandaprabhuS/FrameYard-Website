@@ -208,6 +208,18 @@ if (user.role !== "CUSTOMER") {
     },
   });
 
+  try {
+    await prisma.notification.create({
+      data: {
+        title: "New Order Placed",
+        message: `Order #${order.orderNumber} has been placed. Status: ${order.orderStatus}. Total Amount: $${order.totalAmount}`,
+        type: "info",
+      },
+    });
+  } catch (err) {
+    console.error("Failed to create order notification:", err);
+  }
+
   return {
     success: true,
     message: "Order placed successfully",

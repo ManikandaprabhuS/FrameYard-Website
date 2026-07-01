@@ -17,7 +17,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: localStorage.getItem('fy_auth_token'),
+  token: null,
   isAuthenticated: false,
   loading: false,
   error: null,
@@ -29,30 +29,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   });
 
   try {
-
     const response = await authService.login(
         email,
         password
       );
 
-    if (!response.success || !response.session?.access_token) {
-      set({
-        error: response.message || "Login failed",
-        loading: false,
-      });
-      return false;
-    }
+    if (!response.success) {
+  set({
+    error: response.message || "Login failed",
+    loading: false,
+  });
+  return false;
+}
+const user = response.user;
 
-    const user = response.user;
-    const token = response.session.access_token;
-
-    localStorage.setItem(
-      "fy_auth_token",
-      token
-    );
     set({
       user,
-      token,
+      token: null,
       isAuthenticated: true,
       loading: false,
     });
@@ -75,10 +68,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   try {
     await authService.logout();
 
-    localStorage.removeItem(
-      "fy_auth_token"
-    );
-
     set({
       user: null,
       token: null,
@@ -100,45 +89,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   }
 },
-
   checkAuth: async () => {
-
-  const token =
-    localStorage.getItem(
-      "fy_auth_token"
-    );
-
-  if (!token) {
-
-    set({
-      isAuthenticated: false,
-      user: null,
-      loading: false,
-    });
-
-    return;
-  }
 
   set({
     loading: true,
   });
-
   try {
+    const user =await authService.me();
 
-    const user =
-      await authService.me();
-
-    set({
-      user,
-      token,
-      isAuthenticated: true,
-      loading: false,
-    });
+   set({
+  user,
+  token: null,
+  isAuthenticated: true,
+  loading: false,
+});
 
   } catch (err) {
-    localStorage.removeItem(
-      "fy_auth_token"
-    );
 
     set({
       user: null,

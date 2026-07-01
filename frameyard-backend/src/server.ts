@@ -1,15 +1,10 @@
 import cors from "cors";
 import "dotenv/config";
 import app from "./app";
+import cookieParser from "cookie-parser";
 
 const PORT = 5000;
 
-app.use(
-  cors({
-    origin: [      // frontend API
-      "http://localhost:4200",    ], credentials: true,
-  })
-);
 app.use((req, res) => { res.status(404).json({
     success: false,    message: "Route not found",
   });
