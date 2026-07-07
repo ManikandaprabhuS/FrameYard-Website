@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../../config/prisma";
+import { supabase } from "../../config/supabase";
 
 type ProductImageInput = {
   imageUrl: string;
@@ -294,7 +295,6 @@ export const updateVariant = async (
 export const deleteVariant = async (
   variantId: string
 ) => {
-
   const existingVariant =
     await prisma.productVariant.findUnique({
       where: {
@@ -318,6 +318,79 @@ export const deleteVariant = async (
   return {
     success: true,
     message: "Variant deleted successfully",
+  };
+};
+
+export const deleteProduct = async (
+  productId: string
+) => {
+  const existingProduct =
+    await prisma.product.findUnique({
+      where: {
+        id: productId,
+      },
+      include: {
+        images: true,
+      },
+    });
+
+  if (!existingProduct) {
+    return {
+      success: false,
+      message: "Product not found",
+    };
+  }
+
+  const paths =
+    existingProduct.images
+      .map((image) => {
+
+        const marker =
+          "/product-images/";
+
+        const index =
+          image.imageUrl.indexOf(
+            marker
+          );
+
+        if (index === -1) {
+          return null;
+        }
+
+        return image.imageUrl.substring(
+          index + marker.length
+        );
+
+      })
+      .filter(Boolean) as string[];
+
+  console.log(
+    "FILES TO DELETE:",
+    paths
+  );
+
+  if (paths.length > 0) {
+    const { error } =
+      await supabase.storage
+        .from("product-images")
+        .remove(paths);
+
+    console.log(
+      "DELETE STORAGE ERROR:",
+      error
+    );
+
+  }
+
+  await prisma.product.delete({
+    where: {
+      id: productId,
+    },
+  });
+
+  return {
+    success: true,
+    message: "Product deleted successfully",
   };
 };
 

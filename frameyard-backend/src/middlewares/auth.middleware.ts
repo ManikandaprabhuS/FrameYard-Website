@@ -11,16 +11,14 @@ export interface AuthRequest extends Request {
   res: Response,
   next: NextFunction
 ) => {
-  const token =
-  req.cookies
-    ?.fy_access_token;
+  const token =req.cookies?.fy_access_token;
+   console.log("COOKIE TOKEN =", !!token);
 
 if (!token) {
   return res.status(401)
     .json({
       success:false,
-      message:
-      "Access token missing",
+      message:"Access token missing",
     });
 }
   const {
@@ -28,14 +26,20 @@ if (!token) {
     error,
   } = await supabase.auth.getUser(token);
 
+  console.log("SUPABASE USER =",user?.email);
+
+   console.log("SUPABASE ERROR =",error);
+
   if (error || !user) {
     return res.status(401).json({
       success: false,
       message: "Invalid token",
     });
   }
-
   req.user = user;
-
   next();
+console.log("COOKIES =", req.cookies);
+console.log("AUTH =", req.headers.authorization)
+
 };
+

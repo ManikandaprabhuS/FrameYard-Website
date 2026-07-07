@@ -31,7 +31,7 @@ export const adminLogin = async (
       secure:
         process.env.NODE_ENV ===
         "production",
-      sameSite: "lax",
+       sameSite: "none",
       maxAge:
         7 * 24 * 60 * 60 * 1000,
     }
@@ -59,7 +59,6 @@ export const profile = async (
   const result = await getProfile(
     req.user!.id
   );
-
   return res.status(200).json(result);
 };
 
@@ -71,6 +70,5 @@ export const updateUserProfile = async (
     req.user!.id,
     req.body
   );
-
   return res.status(200).json(result);
 };
