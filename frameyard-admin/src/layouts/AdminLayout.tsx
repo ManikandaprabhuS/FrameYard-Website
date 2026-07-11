@@ -22,6 +22,13 @@ import {
 export const AdminLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => !prev);
+    setIsHovered(false);
+  };
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -112,10 +119,26 @@ export const AdminLayout: React.FC = () => {
       {/* ------------------------------------------------------------- */}
       {/* DESKTOP SIDEBAR */}
       {/* ------------------------------------------------------------- */}
-      <aside className="hidden md:flex w-sidebar-width h-screen fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant flex-col py-stack-lg px-stack-md z-50">
-        <div className="mb-8 px-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-on-primary font-bold">FY</div>
-          <div>
+      <aside 
+        onMouseEnter={() => isCollapsed && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`hidden md:flex h-screen fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant flex-col py-stack-lg z-50 transition-all duration-300 ${
+          (!isCollapsed || isHovered) ? 'w-[280px] px-stack-md' : 'w-[72px] px-3'
+        }`}
+      >
+        <div 
+          onClick={handleToggleCollapse}
+          className={`mb-8 flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0 ${
+            (!isCollapsed || isHovered) ? 'px-4' : 'justify-center'
+          }`}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          <div className="w-8 h-8 rounded-lg bg-primary flex-shrink-0 flex items-center justify-center text-on-primary font-bold">FY</div>
+          <div className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${
+            (!isCollapsed || isHovered) 
+              ? 'opacity-100 w-[180px] ml-3' 
+              : 'opacity-0 w-0'
+          }`}>
             <h1 className="font-sans text-lg font-bold text-on-surface leading-tight">FrameYaad</h1>
             <p className="text-xs font-semibold text-secondary tracking-wider uppercase opacity-80">Admin Console</p>
           </div>
@@ -129,18 +152,41 @@ export const AdminLayout: React.FC = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                className={`flex items-center rounded-lg text-sm transition-all duration-200 relative ${
                   isActive
                     ? 'bg-secondary-container text-on-secondary-container font-semibold shadow-sm'
                     : 'text-secondary hover:bg-surface-container-high hover:text-on-surface'
+                } ${
+                  (!isCollapsed || isHovered) 
+                    ? 'px-4 py-2.5 gap-3' 
+                    : 'p-2.5 justify-center'
                 }`}
+                title={isCollapsed && !isHovered ? link.name : undefined}
               >
-                <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-primary' : 'text-secondary'}`} />
-                <span>{link.name}</span>
+                <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-primary' : 'text-secondary'}`} />
+                <span className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                  (!isCollapsed || isHovered) 
+                    ? 'opacity-100 w-[150px]' 
+                    : 'opacity-0 w-0'
+                }`}>
+                  {link.name}
+                </span>
                 {link.name === 'Notifications' && unreadCount > 0 && (
-                  <span className="ml-auto w-5 h-5 bg-error text-on-error text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {unreadCount}
-                  </span>
+                  <div className="flex items-center ml-auto">
+                    {/* Pulsing dot shown only when collapsed and NOT hovered */}
+                    <span className={`w-2 h-2 bg-error rounded-full animate-pulse flex-shrink-0 ${
+                      (isCollapsed && !isHovered) ? 'block' : 'hidden'
+                    }`} />
+                    
+                    {/* Badge count shown when expanded or when collapsed but hovered */}
+                    <span className={`bg-error text-on-error text-[10px] font-bold rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                      (isCollapsed && !isHovered) 
+                        ? 'opacity-0 scale-0 w-0 h-0 ml-0' 
+                        : 'w-5 h-5 ml-auto opacity-100 scale-100'
+                    }`}>
+                      {unreadCount}
+                    </span>
+                  </div>
                 )}
               </Link>
             );
@@ -149,20 +195,36 @@ export const AdminLayout: React.FC = () => {
 
         {/* User Card bottom */}
         {user && (
-          <div className="mt-auto px-4 pt-4 border-t border-outline-variant">
-            <div className="flex items-center justify-between">
-              <Link to="/admin/profile" className="flex items-center gap-3 py-1 group">
-                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold border border-outline-variant group-hover:ring-2 group-hover:ring-primary transition-all duration-200">
+          <div className={`mt-auto border-t border-outline-variant flex-shrink-0 transition-all duration-300 ${
+            (!isCollapsed || isHovered) 
+              ? 'px-4 pt-4' 
+              : 'pt-4 px-3'
+          }`}>
+            <div className={`flex items-center justify-between transition-all duration-300 ${
+              (!isCollapsed || isHovered) 
+                ? 'w-full flex-row gap-0' 
+                : 'flex-col gap-3'
+            }`}>
+              <Link 
+                to="/admin/profile" 
+                className="flex items-center gap-3 py-1 group"
+                title={isCollapsed && !isHovered ? `${user.name} (${user.role})` : undefined}
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex-shrink-0 flex items-center justify-center font-bold border border-outline-variant group-hover:ring-2 group-hover:ring-primary transition-all duration-200">
                   {avatarInitial}
                 </div>
-                <div className="text-left max-w-[120px]">
+                <div className={`text-left transition-all duration-300 overflow-hidden whitespace-nowrap ${
+                  (!isCollapsed || isHovered) 
+                    ? 'opacity-100 w-[120px] ml-3' 
+                    : 'opacity-0 w-0'
+                }`}>
                   <p className="text-sm font-semibold text-on-surface truncate leading-tight group-hover:text-primary">{user.name}</p>
                   <p className="text-[11px] text-on-surface-variant truncate mt-0.5">{user.role}</p>
                 </div>
               </Link>
               <button 
                 onClick={handleLogout}
-                className="p-1.5 hover:bg-error/10 hover:text-error text-on-surface-variant rounded-lg transition-colors"
+                className="p-1.5 hover:bg-error/10 hover:text-error text-on-surface-variant rounded-lg transition-colors flex-shrink-0"
                 title="Log Out"
               >
                 <LogOut className="w-4 h-4" />
@@ -251,7 +313,9 @@ export const AdminLayout: React.FC = () => {
       {/* ------------------------------------------------------------- */}
       {/* MAIN VIEWPORT WRAPPER */}
       {/* ------------------------------------------------------------- */}
-      <div className="flex-1 flex flex-col md:ml-sidebar-width w-full max-w-full min-h-screen">
+      <div className={`flex-1 flex flex-col w-full max-w-full min-h-screen transition-all duration-300 ${
+        isCollapsed ? 'md:ml-[72px]' : 'md:ml-[280px]'
+      }`}>
         
         {/* Sticky Header */}
         <header className="h-topbar-height sticky top-0 z-40 bg-surface-container-lowest border-b border-outline-variant shadow-sm flex items-center justify-between px-margin-desktop transition-all">
@@ -298,7 +362,9 @@ export const AdminLayout: React.FC = () => {
               >
                 <Bell className="w-[18px] h-[18px]" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full" />
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-error text-on-error text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-surface-container-lowest shadow-sm">
+                    {unreadCount}
+                  </span>
                 )}
               </button>
 

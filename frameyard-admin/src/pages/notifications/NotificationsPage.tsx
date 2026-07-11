@@ -4,11 +4,18 @@ import { Bell, CheckCircle2, AlertTriangle, Info, XCircle, Check } from 'lucide-
 
 export const NotificationsPage: React.FC = () => {
   const { notifications, loading, markAllAsRead, toggleNotificationRead, removeNotification } = useNotifications(true);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
 
-  const filteredNotifications = notifications.filter(
-    (n) => filter === 'all' || !n.read
-  );
+  const totalCount = notifications.length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const readCount = notifications.filter((n) => n.read).length;
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (filter === 'all') return true;
+    if (filter === 'unread') return !n.read;
+    if (filter === 'read') return n.read;
+    return true;
+  });
 
   const getIconForType = (type: string) => {
     switch (type) {
@@ -36,18 +43,26 @@ export const NotificationsPage: React.FC = () => {
             <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                filter === 'all' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'
+                filter === 'all' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              All
+              All ({totalCount})
             </button>
             <button
               onClick={() => setFilter('unread')}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                filter === 'unread' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'
+                filter === 'unread' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              Unread
+              Unread ({unreadCount})
+            </button>
+            <button
+              onClick={() => setFilter('read')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                filter === 'read' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Read ({readCount})
             </button>
           </div>
           <button

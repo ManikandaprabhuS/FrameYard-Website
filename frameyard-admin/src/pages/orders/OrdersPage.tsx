@@ -12,12 +12,21 @@ const getSearchTermFromQueryString = (search: string) => {
   return params.get('search')?.trim() || params.get('q')?.trim() || '';
 };
 
+const getStatusFromQueryString = (search: string): 'all' | OrderStatus => {
+  const params = new URLSearchParams(search);
+  const status = params.get('status')?.toUpperCase();
+  if (status && ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(status)) {
+    return status as OrderStatus;
+  }
+  return 'all';
+};
+
 export const OrdersPage: React.FC = () => {
   const location = useLocation();
   const { orders, loading, refreshing, fetchOrders, changeOrderStatus, pagination, summary } = useOrders();
   const [searchTerm, setSearchTerm] = useState(() => getSearchTermFromQueryString(location.search));
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() => getSearchTermFromQueryString(location.search));
-  const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>(() => getStatusFromQueryString(location.search));
   const [dateFilter, setDateFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -30,6 +39,8 @@ export const OrdersPage: React.FC = () => {
       const nextSearchTerm = getSearchTermFromQueryString(location.search);
       setSearchTerm(nextSearchTerm);
       setDebouncedSearchTerm(nextSearchTerm);
+      const nextStatus = getStatusFromQueryString(location.search);
+      setStatusFilter(nextStatus);
       setCurrentPage(1);
     }, 0);
 

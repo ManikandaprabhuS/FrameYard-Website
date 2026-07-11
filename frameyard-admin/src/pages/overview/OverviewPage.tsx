@@ -177,7 +177,7 @@ export const OverviewPage: React.FC = () => {
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-[0_1px_3px_rgba(15,23,42,0.08)] flex flex-col">
           <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider mb-6">Order Fulfillment</h3>
           <div className="flex-1 flex flex-col gap-3">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders')}>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders?status=PENDING')}>
               <div className="flex items-center gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 <span className="text-xs font-semibold text-on-surface">Pending Payment</span>
@@ -185,7 +185,7 @@ export const OverviewPage: React.FC = () => {
               <span className="text-xs font-bold text-on-surface">{pendingCount}</span>
             </div>
             
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders')}>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders?status=PROCESSING')}>
               <div className="flex items-center gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                 <span className="text-xs font-semibold text-on-surface">Processing</span>
@@ -193,7 +193,7 @@ export const OverviewPage: React.FC = () => {
               <span className="text-xs font-bold text-on-surface">{processingCount}</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders')}>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders?status=SHIPPED')}>
               <div className="flex items-center gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
                 <span className="text-xs font-semibold text-on-surface">Shipped</span>
@@ -201,7 +201,7 @@ export const OverviewPage: React.FC = () => {
               <span className="text-xs font-bold text-on-surface">{shippedCount}</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders')}>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigate('/admin/orders?status=DELIVERED')}>
               <div className="flex items-center gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-primary" />
                 <span className="text-xs font-semibold text-on-surface">Delivered</span>
@@ -209,7 +209,7 @@ export const OverviewPage: React.FC = () => {
               <span className="text-xs font-bold text-on-surface">{deliveredCount}</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer mt-auto" onClick={() => navigate('/admin/orders')}>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer mt-auto" onClick={() => navigate('/admin/orders?status=CANCELLED')}>
               <div className="flex items-center gap-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500 block"/>
                 <span className="text-xs font-semibold text-on-surface">Cancelled</span>
